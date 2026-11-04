@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 from aiohttp import web, WSMsgType
 from curriculum import LESSONS
 from checks import check
+from editor_run import run_example
 
 ROOT = Path('/home/student/lab')
 STATIC = Path('/opt/app/static')
@@ -82,6 +83,18 @@ async def file_put(request):
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content)
     return web.json_response({'saved': True})
+
+async def editor_run(request):
+    data = await request.json()
+    if not isinstance(data, dict) or not isinstance(data.get('path'), str):
+        raise web.HTTPBadRequest(text='잘못된 실행 요청입니다.')
+    path = safe_file(data['path'])
+    lock = request.app['run_lock']
+    if lock.locked():
+        raise web.HTTPTooManyRequests(text='다른 편집기 실행이 진행 중입니다.')
+    async with lock:
+        return web.json_response(await run_example(ROOT, path, data.get('args')))
+
 
 async def checkpoint(request):
     lid = request.match_info['id']
@@ -163,9 +176,10 @@ async def shutdown(app):
 
 app = web.Application(middlewares=[local_only], client_max_size=300_000)
 app['check_lock'] = asyncio.Lock()
+app['run_lock'] = asyncio.Lock()
 app.add_routes([web.get('/', index), web.get('/health', lambda r: web.json_response({'ok': True})),
     web.get('/api/info', info), web.get('/api/files', files), web.get('/api/file', file_get),
-    web.put('/api/file', file_put), web.post('/api/check/{id}', checkpoint), web.get('/ws', terminal)])
+    web.put('/api/file', file_put), web.post('/api/run', editor_run), web.post('/api/check/{id}', checkpoint), web.get('/ws', terminal)])
 app.router.add_static('/static/', STATIC)
 app.on_shutdown.append(shutdown)
 web.run_app(app, host='0.0.0.0', port=8080, print=None)

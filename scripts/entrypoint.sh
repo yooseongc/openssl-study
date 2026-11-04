@@ -2,6 +2,7 @@
 set -eu
 umask 077
 mkdir -p /home/student/lab/{examples,pki,tls,notes}
+python /opt/scripts/update-examples.py
 cp -rn /opt/examples/. /home/student/lab/examples/
 if [ ! -f /home/student/lab/tls/server.pem ]; then
   cd /home/student/lab/tls

@@ -82,6 +82,29 @@ function connect(){
   socket.onclose=()=>{$('connection').textContent='연결 종료';$('connection').classList.add('offline');term.writeln('\r\n\x1b[33m연결이 종료되었습니다. 다시 연결을 눌러 새 셸을 여세요.\x1b[0m');};
   socket.onerror=()=>toast('터미널 연결 오류: Docker 컨테이너 상태를 확인하세요.');
 }
+function editorMode(path) {
+  return /\.(c|h)$/i.test(path) ? 'text/x-csrc' : 'text/x-c++src';
+}
+const codeEditor = CodeMirror($('editor'), {
+  mode: editorMode($('file-path').value),
+  theme: 'material-darker',
+  lineNumbers: true,
+  indentUnit: 4,
+  tabSize: 4,
+  screenReaderLabel: '소스 코드 편집기. Escape로 편집 영역에서 나갑니다.',
+  extraKeys: {'Ctrl-Enter': () => runCurrentFile(), 'Cmd-Enter': () => runCurrentFile(), Esc: () => $('run-args').focus()}
+});
+codeEditor.on('change', () => { dirty = true; });
+new ResizeObserver(() => {
+  if ($('editor').clientWidth) codeEditor.refresh();
+}).observe($('editor'));
+function loadSource(path, content) {
+  $('file-path').value = path;
+  codeEditor.swapDoc(new CodeMirror.Doc(content, editorMode(path)));
+  $('args-guide').open = false;
+  showGuide();
+  renderResults();
+}
 function switchTab(tab){
   document.body.dataset.tool=tab;
   const terminal=tab==='terminal'; $('terminal-panel').hidden=!terminal;$('editor-panel').hidden=terminal;
@@ -99,12 +122,12 @@ async function openFile(path){
   if(dirty && !confirm('저장하지 않은 코드가 있습니다. 변경을 버리고 파일을 열까요?')) { $('file-list').value=loadedPath;return; }
   const result=await api(`/api/file?path=${encodeURIComponent(path)}`);
   if (loadedPath !== result.path) $('run-args').value='';
-  $('editor').value=result.content;$('file-path').value=result.path;loadedPath=result.path;dirty=false;
+  loadSource(result.path, result.content);loadedPath=result.path;dirty=false;
   await refreshFiles();switchTab('editor');
 }
 async function saveFile(){
   const path=$('file-path').value.trim();
-  await api('/api/file',{method:'PUT',body:JSON.stringify({path,content:$('editor').value})});
+  await api('/api/file',{method:'PUT',body:JSON.stringify({path,content:codeEditor.getValue()})});
   loadedPath=path;dirty=false;await refreshFiles();toast('파일을 저장했습니다.');return path;
 }
 function parseArgs(text) {
@@ -158,20 +181,15 @@ $('lab-jump').onclick=()=>{setPane('lab');$('lab-pane').focus({preventScroll:tru
 $('terminal-tab').onclick=()=>switchTab('terminal');$('editor-tab').onclick=()=>switchTab('editor');$('reconnect').onclick=connect;
 $('file-list').onchange=e=>{if(e.target.value)openFile(e.target.value).catch(e=>toast(e.message));};
 $('refresh-files').onclick=()=>refreshFiles().catch(e=>toast(e.message));
-$('new-file').onclick=()=>{if(dirty&&!confirm('저장하지 않은 변경을 버리고 새 파일을 만들까요?'))return;$('editor').value='';$('file-path').value='examples/my_program.cpp';loadedPath='';$('file-list').value='';$('run-args').value='';dirty=true;};
-$('editor').oninput=()=>dirty=true;$('file-path').oninput=()=>dirty=true;
-$('editor').onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();const x=e.target;x.setRangeText('    ',x.selectionStart,x.selectionEnd,'end');dirty=true;}};
-$('save-file').onclick=()=>saveFile().catch(e=>toast(e.message));
-$('build-run').onclick=async()=>{
-  if(!terminalReady())return;
-  const b=$('build-run');b.disabled=true;
-  try{
-    const path=await saveFile();if(!/\.(c|cpp|cc|cxx)$/.test(path))throw new Error('컴파일은 C/C++ 소스 파일에서 사용할 수 있습니다.');
-    const args=parseArgs($('run-args').value).map(shellQuote).join(' ');
-    const command=`cd /home/student/lab && study-build ${shellQuote(path)} ${args}`;
-    switchTab('terminal');term.paste(command);socket.send(JSON.stringify({type:'input',data:'\r'}));term.focus();
-  }catch(e){toast(e.message);}finally{b.disabled=false;}
+$('new-file').onclick=()=>{if(dirty&&!confirm('저장하지 않은 변경을 버리고 새 파일을 만들까요?'))return;loadSource('examples/my_program.cpp', '');codeEditor.focus();loadedPath='';$('file-list').value='';$('run-args').value='';dirty=true;};
+$('file-path').oninput = () => {
+  dirty = true;
+  codeEditor.setOption('mode', editorMode($('file-path').value));
+  showGuide();
+  renderResults();
 };
+$('save-file').onclick=()=>saveFile().catch(e=>toast(e.message));
+$('build-run').onclick = () => runCurrentFile();
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 async function init(){
   try{const data=await api('/api/info');lessons=data.lessons;$('version').textContent=data.openssl;

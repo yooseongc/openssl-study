@@ -7,7 +7,7 @@ case "$source_file" in
  *.c) compiler=gcc; standard=-std=c11 ;;
  *) echo 'Supported: .cpp .cc .cxx .c' >&2; exit 1 ;;
 esac
-target=${source_file%.*}
+target=${STUDY_BUILD_OUTPUT:-${source_file%.*}}
 "$compiler" "$standard" -Wall -Wextra -Werror -g -O0 -pthread -I /home/student/lab/examples/cpp "$source_file" -o "$target" -lssl -lcrypto
 case "$target" in /*) ;; *) target="./$target";; esac
 timeout 15 "$target" "$@"
