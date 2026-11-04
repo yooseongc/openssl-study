@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101b28">
+  <title>OpenSSL Study · 실험하며 배우는 암호 통신</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/vendor/xterm.css"><link rel="stylesheet" href="/static/style.css">
+  <script defer src="/static/vendor/xterm.js"></script><script defer src="/static/vendor/addon-fit.js"></script><script defer src="/static/app.js"></script>
+</head>
+<body class="app-shell" data-pane="lesson">
+<header class="topbar"><div class="topbar-inner">
+  <a class="brand" href="/" aria-label="OpenSSL Study 홈"><span class="brand-icon">⌘</span><span>OpenSSL Study<span class="brand-sub">C++20 / OPENSSL 3.5.7</span></span></a>
+  <div class="header-context"><span id="module-name">암호학 기초와 TLS</span></div>
+  <div class="header-actions"><a class="guide-link" href="/static/style-guide.html" target="_blank" rel="noopener">스타일 가이드 ↗</a><button id="course-toggle" aria-expanded="false" aria-controls="course-panel">학습 목차</button><button id="lab-jump">실습 보기</button></div>
+</div></header>
+<dialog id="course-panel" class="course-panel" aria-label="학습 목차">
+  <div class="course-heading"><h2>학습 목차</h2><button id="course-close">목차 닫기</button></div>
+  <div class="course-controls">  <input id="lesson-search" type="search" placeholder="레슨 · API 검색" aria-label="레슨 또는 API 검색">
+  <div class="progress-card"><div><span>전체 학습 진행</span><strong id="progress-label">0 / 28</strong></div><progress id="progress" max="28" value="0"></progress><small>실습 검사 + 이해도 퀴즈 통과</small></div>
+</div>
+  <nav id="navigation" aria-label="학습 레슨"></nav>
+</dialog>
+<div class="main">
+  <div class="layout-bar"><span class="layout-hint">교재와 실습 · 화면 안에서 함께</span><div class="pane-options" role="group" aria-label="학습 화면 전환"><button data-pane-choice="lesson" aria-pressed="true">교재</button><button data-pane-choice="lab" aria-pressed="false">실습</button></div><div class="layout-options" role="group" aria-label="교재와 실습 폭 선택"><button data-layout-choice="reading" aria-pressed="false">교재 넓게</button><button data-layout-choice="balanced" aria-pressed="true">균형</button><button data-layout-choice="practice" aria-pressed="false">실습 넓게</button></div></div>
+  <div class="workspace">
+    <main class="lesson-pane" id="lesson-pane" tabindex="-1"><div id="lesson-content"><p>실습 환경을 불러오는 중입니다…</p></div></main>
+    <section id="lab-pane" class="lab-pane" tabindex="-1" aria-label="실습 워크스페이스">
+      <div class="lab-heading"><div><span class="eyebrow">LIVE WORKSPACE</span><h2>직접 해보는 실험실</h2></div><span id="connection" class="connection">연결 중</span></div>
+      <div class="lab-tabs" role="tablist"><button id="terminal-tab" class="active" role="tab" aria-selected="true">터미널</button><button id="editor-tab" role="tab" aria-selected="false">코드 편집기</button></div>
+      <div id="terminal-panel" class="terminal-panel"><div class="terminal-toolbar"><span>bash · student@openssl-study</span><button id="reconnect" title="현재 셸을 닫고 새로 연결">다시 연결</button></div><div id="terminal"></div><div class="terminal-footer"><kbd>Ctrl</kbd> + <kbd>C</kbd> 실행 중단 <span>파일은 컨테이너 재시작 후에도 유지됩니다.</span></div></div>
+      <div id="editor-panel" class="editor-panel" hidden>
+        <div class="editor-tools"><select id="file-list" aria-label="파일 선택"></select><button id="refresh-files" title="파일 목록 새로고침">↻</button><button id="new-file">새 파일</button></div>
+        <label class="file-path">파일 경로 <input id="file-path" value="examples/digest.c" spellcheck="false" aria-label="저장할 파일 경로"></label>
+        <textarea id="editor" spellcheck="false" aria-label="코드 편집기" placeholder="C++ 코드를 직접 입력하거나 예제 파일을 열어보세요."></textarea>
+        <label class="file-path">실행 인자 <input id="run-args" placeholder="예: nonblock wrong.example" spellcheck="false"></label><div class="editor-actions"><button id="save-file">저장</button><button id="build-run" class="primary">저장 · 컴파일 · 실행 ↗</button></div>
+        <small>study-build → g++ -std=c++20 -Wall -Wextra -Werror -pthread · C도 지원<br>터미널이 입력 대기 프롬프트인 상태에서 실행하세요.</small>
+      </div>
+      <div class="lab-context">작업 폴더 <code>/home/student/lab</code> · 저장 파일 유지</div>
+      <details class="help"><summary>실습 환경 사용 팁 · 버전</summary><span id="version" class="version">환경 확인 중…</span><p>명령의 <b>입력</b> 버튼은 터미널에 명령을 붙여 넣습니다. 내용을 확인하고 Enter로 실행하세요. 여러 줄은 붙여 넣기 영역으로 처리됩니다.</p><p>터미널에서 ↑ 키로 이전 명령을 불러올 수 있습니다. 셸 연결이 끊기면 다시 연결하세요. TLS 서버는 <code>lab-server start</code>로 시작합니다.</p><p>새로고침하면 셸 세션은 새로 시작하며, 저장한 파일과 브라우저의 학습 진행은 유지됩니다. 미저장 코드는 페이지를 떠나기 전에 저장하세요.</p></details>
+    </section>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+</body></html>

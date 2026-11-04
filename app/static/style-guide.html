@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenSSL Study · 스타일 가이드</title><link rel="icon" href="/static/favicon.svg"><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<header class="topbar"><div class="topbar-inner"><a class="brand" href="/"><span class="brand-icon">⌘</span><span>OpenSSL Study<span class="brand-sub">DESIGN SYSTEM / V2.1</span></span></a><div class="header-context">스타일 가이드</div><a href="/">학습실로 돌아가기 →</a></div></header>
+<main class="guide">
+<span class="eyebrow">READ COMFORTABLY · PRACTICE DIRECTLY</span>
+<h1>읽기는 편안하게.<br>실습은 바로 옆에서.</h1>
+<p class="intro">이 페이지와 학습실은 같은 스타일시트를 사용합니다. 중앙 작업 공간, 왼쪽 교재 내부 스크롤, 창 높이에 맞춘 실습 패널을 기본으로 유지합니다.</p>
+<section><h2>01. 배치와 스크롤</h2><div class="concept-card"><h3>기본 원칙</h3><ul><li>학습실은 창 높이 안에 들어오며 페이지 전체는 스크롤하지 않습니다.</li><li>교재는 왼쪽 패널 안에서 스크롤합니다.</li><li>오른쪽 실습은 sticky 없이 남은 높이를 채웁니다.</li><li>교재와 실습을 나란히 묶어 중앙 정렬합니다. 묶음은 페이지 폭의 94%로 창과 함께 자동 확장됩니다.</li><li>좁은 화면에서는 교재 / 실습으로 전환합니다.</li><li>목차는 닫을 수 있는 dialog로 제공합니다.</li></ul></div>
+<table><thead><tr><th>화면</th><th>배치</th></tr></thead><tbody><tr><td>900px 초과</td><td>중앙 정렬 flex 2열, 페이지 폭의 94%, 고정 최대 폭 없음</td></tr><tr><td>900px 이하</td><td>교재 / 실습 패널 전환</td></tr><tr><td>높이 760px 이하</td><td>터미널·편집기를 줄여 조작부 접근 보장</td></tr></tbody></table></section>
+<section><h2>02. 글자와 간격</h2><p>본문은 16px, 행간은 1.85입니다. 코드는 고정폭 서체 13px로 읽습니다. 내용을 더 많이 넣기 위해 본문 크기를 줄이지 않습니다.</p><table><tbody><tr><th>제목</th><td>26–36px / 행간 1.45</td></tr><tr><th>본문</th><td>16px / 행간 1.85</td></tr><tr><th>API 설명</th><td>14px</td></tr><tr><th>버튼·코드</th><td>13px</td></tr><tr><th>간격</th><td>4 · 8 · 12 · 16 · 24 · 32 · 48px</td></tr><tr><th>모서리</th><td>일반 8px · 카드 12px</td></tr></tbody></table></section>
+<section><h2>03. 색상</h2><p>밝은 바탕과 녹색 강조를 사용하고, 실행 도구만 어둡게 구분합니다. 장식용 그림자와 그라데이션을 사용하지 않습니다.</p><table><tbody><tr><th>본문</th><td><code>--text · #203329</code></td></tr><tr><th>보조 정보</th><td><code>--muted · #627369</code></td></tr><tr><th>바탕 / 카드</th><td><code>#f5f7f4 / #ffffff</code></td></tr><tr><th>강조</th><td><code>--accent · #236c50</code></td></tr><tr><th>터미널</th><td><code>--terminal · #101b28</code></td></tr></tbody></table></section>
+<section><h2>04. API 카드 표준</h2><article class="api-card"><h3><code>EVP_MD_fetch(libctx, algorithm, properties)</code></h3><dl><dt>인자</dt><dd>알고리즘 이름과 구현 선택 조건을 전달합니다.</dd><dt>소유권 / 수명</dt><dd>반환한 객체는 호출자가 해제할 책임이 있습니다.</dd><dt>반환값</dt><dd>성공 시 포인터, 실패 시 nullptr입니다.</dd><dt>실패 시</dt><dd>이후 연산을 진행하지 않고 실패 원인을 확인합니다.</dd></dl></article><p>새 API 설명도 이 네 항목을 유지합니다. 색상만으로 성공과 실패를 전달하지 않습니다.</p></section>
+<section><h2>05. 유지 규칙</h2><p>구현 기준은 <code>app/static/style.css</code>, 문서 기준은 프로젝트의 <code>STYLE_GUIDE.md</code>입니다. 공통 토큰을 먼저 수정하고 임시 덮어쓰기나 inline style을 누적하지 않습니다.</p><p>변경 후 2560×1440, 1920×1080, 1440×1000, 1280×720, 960×900, 390×844 화면에서 가로 넘침과 잘린 조작부를 확인합니다. 목차 검색, 명령 입력, 코드 편집·실행, 키보드 focus도 함께 확인합니다.</p><a href="/">학습실로 돌아가기 →</a></section>
+</main></body></html>

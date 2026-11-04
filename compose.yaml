@@ -1,0 +1,23 @@
+name: openssl-study
+services:
+  study:
+    build: .
+    ports:
+      - "127.0.0.1:8440:8080"
+    volumes:
+      - lab-data:/home/student/lab
+    init: true
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+volumes:
+  lab-data:
