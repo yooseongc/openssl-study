@@ -140,3 +140,28 @@ lesson('code-3', 4, '인증하는 TLS 클라이언트 완성', 30,
 
 from advanced import extend
 extend(LESSONS)
+
+# Attach terminology before rendering, including direct lesson links.
+import json
+from pathlib import Path
+_terms = json.loads(Path(__file__).with_name('lesson_terms.json').read_text(encoding='utf8'))
+for _lesson in LESSONS:
+    _lesson['terms'] = [
+        {'name': name, 'meaning': _terms['terms'][name]}
+        for name in _terms['lessons'][_lesson['id']]
+    ]
+_mac = next(item for item in LESSONS if item['id'] == 'basic-mac')
+_mac['sections'].insert(0, {
+    'title': 'MAC과 HMAC을 실제 메시지로 이해하기',
+    'paragraphs': [
+        '송신자와 수신자가 비밀키 K를 공유한다고 해봅시다. 송신자는 메시지 hello와 K로 HMAC-SHA256 태그를 계산하고, 메시지와 태그를 보냅니다. 수신자도 받은 메시지와 K로 태그를 계산해서 받은 태그와 비교합니다. 공격자가 메시지만 바꾸면 검증이 실패하며, K를 모르면 바뀐 메시지에 맞는 태그를 만드는 것이 어렵습니다.',
+        'MAC은 메시지 인증 코드라는 넓은 범주이고 HMAC은 해시를 사용하는 MAC 방식입니다. HMAC-SHA256이라는 이름은 내부에서 SHA-256을 쓴다는 뜻입니다. 원문을 숨기는 기능은 별도로 필요합니다. 또한 같은 키를 가진 수신자도 태그를 만들 수 있으므로 특정 한 사람이 작성했다는 공개적인 증명으로 사용할 수는 없습니다.',
+        'random_mac.cpp의 mac hello는 계산한 태그와 같은 태그를 비교합니다. tamper hello는 받은 태그 한 비트를 바꿉니다. 두 실행의 MAC VERIFIED와 MAC REJECTED를 비교하세요.'
+    ]
+})
+_mac['docs'].append('https://www.rfc-editor.org/rfc/rfc2104.html')
+
+_purposes = json.loads(Path(__file__).with_name('api_purposes.json').read_text(encoding='utf8'))
+for _lesson in LESSONS:
+    for _api in _lesson.get('apis', []):
+        _api['purpose'] = _purposes[_api['name']]

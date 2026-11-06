@@ -13,12 +13,12 @@ async function api(path, options = {}) {
   if (!r.ok) throw new Error((await r.text()).slice(0, 180));
   return r.json();
 }
-function done(l) { return !!(progress[l.id]?.check && progress[l.id]?.quiz); }
+function done(l) { return progress[l.id]?.completed ?? !!(progress[l.id]?.check && progress[l.id]?.quiz); }
 function saveProgress() { try { localStorage.setItem('openssl-study-progress-v1', JSON.stringify(progress)); } catch { toast('브라우저에서 진행 저장이 차단되었습니다.'); } renderNav(); }
 function renderNav() {
   const query = ($('lesson-search')?.value || '').toLowerCase();
   $('navigation').innerHTML = modules.map((m, i) => {
-    const matches = lessons.map((l,n)=>({l,n})).filter(({l})=>l.module===i+1 && (!query || (l.title+' '+l.intro+' '+(l.apis||[]).map(a=>a.name).join(' ')).toLowerCase().includes(query)));
+    const matches = lessons.map((l,n)=>({l,n})).filter(({l})=>l.module===i+1 && (!query || (l.title+' '+l.intro+' '+(l.apis||[]).map(a=>a.name).join(' ')+' '+(l.terms||[]).map(t=>t.name+' '+t.meaning).join(' ')).toLowerCase().includes(query)));
     if(!matches.length)return '';
     return `<details class="module-group" ${query || lessons[current]?.module===i+1?'open':''}><summary class="module-heading"><span class="module-number">0${i+1}</span>${m}<small>${matches.length}</small></summary>${matches.map(({l,n})=>`<button class="lesson-link ${n === current ? 'active':''}" data-lesson="${n}" ${n === current ? 'aria-current="step"':''}><span class="mark">${done(l)?'✓':'·'}</span>${escapeHTML(l.title)}</button>`).join('')}</details>`;
   }).join('') || '<p class="no-results">검색 결과가 없습니다.</p>';
@@ -27,15 +27,18 @@ function renderNav() {
   $('progress-label').textContent = `${count} / ${lessons.length}`;
   $('progress').max = lessons.length; $('progress').value = count;
 }
+function renderTerms(l) {
+  return `<section class="lesson-terms" id="lesson-terms" aria-labelledby="terms-heading"><h2 id="terms-heading">이번 실습의 용어부터</h2><p>이름의 뜻과 사용 이유를 먼저 읽고 실습을 시작하세요.</p><dl>${(l.terms || []).map(t => `<div><dt>${escapeHTML(t.name)}</dt><dd>${escapeHTML(t.meaning)}</dd></div>`).join('')}</dl></section>`;
+}
 function renderReading(l) {
-  return `<div class="reading" id="reading">${(l.sections||[]).map(s=>`<article><h3>${escapeHTML(s.title)}</h3>${s.paragraphs.map(p=>`<p>${escapeHTML(p)}</p>`).join('')}</article>`).join('')}</div><section class="api-contracts" id="api-contracts"><span class="eyebrow">API CONTRACT</span><h2>인자 · 소유권 · 반환값 · 실패 경로</h2>${(l.apis||[]).map(a=>`<article class="api-card"><h3><code>${escapeHTML(a.name)}</code></h3><dl><dt>인자</dt><dd>${escapeHTML(a.args)}</dd><dt>소유권 / 수명</dt><dd>${escapeHTML(a.ownership)}</dd><dt>반환값</dt><dd>${escapeHTML(a.returns)}</dd><dt>실패 시</dt><dd>${escapeHTML(a.failure)}</dd></dl></article>`).join('')}</section>`;
+  return `<div class="reading" id="reading">${(l.sections||[]).map(s=>`<article><h3>${escapeHTML(s.title)}</h3>${s.paragraphs.map(p=>`<p>${escapeHTML(p)}</p>`).join('')}</article>`).join('')}</div><section class="api-contracts" id="api-contracts"><span class="eyebrow">API CONTRACT</span><h2>함수의 역할부터 호출 방법까지</h2>${(l.apis||[]).map(a=>`<article class="api-card"><h3><code>${escapeHTML(a.name)}</code></h3><dl><dt>역할과 흐름</dt><dd>${escapeHTML(a.purpose)}</dd><dt>인자</dt><dd>${escapeHTML(a.args)}</dd><dt>소유권 / 수명</dt><dd>${escapeHTML(a.ownership)}</dd><dt>반환값</dt><dd>${escapeHTML(a.returns)}</dd><dt>실패 시</dt><dd>${escapeHTML(a.failure)}</dd></dl></article>`).join('')}</section>`;
 }
 function showLesson(index) {
   current = index;
   const l = lessons[index];
   history.replaceState(null, '', `#${l.id}`);
   $('module-name').textContent = modules[l.module-1];
-  $('lesson-content').innerHTML = `<div class="lesson-meta"><span class="eyebrow">MODULE 0${l.module} · LAB ${String(index+1).padStart(2,'0')}</span><span class="time">약 ${l.minutes}분</span></div>${done(l)?'<div class="completed-badge">✓ 학습 완료</div>':''}<h1>${escapeHTML(l.title)}</h1><p class="intro">${escapeHTML(l.intro)}</p><div class="lesson-jumps"><button data-jump="reading">개념 해설</button><button data-jump="api-contracts">API 계약</button><button data-jump="practice">실습</button><button data-jump="check-card">검사 · 퀴즈</button></div>${l.id.startsWith('tls-') ? '<div class="flow"><span>ClientHello</span>→<span>키 교환 · 인증</span>→<span>암호화 통신</span></div>':''}${l.module === 3 ? '<div class="flow"><span>Application / libssl</span>→<span>EVP</span>→<span>Provider</span></div>':''}<section class="concept-card"><h3>알고 시작하기</h3><ul>${l.concepts.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul></section>${renderReading(l)}<div id="practice" class="practice-label"><span class="eyebrow">HANDS-ON · C++20 / OPENSSL 3.5.7</span><h2>직접 실행하고 바꿔보기</h2></div>${l.file?`<button class="open-example" id="open-example">↗ ${escapeHTML(l.file)} 편집기에서 열기</button><button id="open-header" class="header-button">공통 헤더 study.hpp</button>`:''}${l.steps.map((s,i)=>`<section class="step"><h3><span class="step-index">${i+1}</span>${escapeHTML(s.title)}</h3><p>${escapeHTML(s.text)}</p><div class="command"><div class="command-top"><span>BASH</span><button data-command="${i}">터미널에 입력 ↗</button></div><pre><code>${escapeHTML(s.command)}</code></pre></div><div class="expect"><b>EXPECTED</b><span>${escapeHTML(s.expect)}</span></div></section>`).join('')}<section class="challenge"><span class="eyebrow">TRY IT YOURSELF</span><p>${escapeHTML(l.challenge||'예상 결과와 실제 결과를 비교해 보세요.')}</p></section><section class="check-card" id="check-card"><h3>이해한 것을 확인하세요</h3><p>실습 결과 파일 또는 환경 동작을 검사합니다. 명령을 직접 실행했는지 추적하는 검사는 아닙니다.</p><button class="primary" id="check">실습 결과 검사 ${progress[l.id]?.check?'✓':''}</button><pre id="check-output" class="check-output" hidden></pre><div class="quiz"><span class="eyebrow">QUICK CHECK</span><h4>${escapeHTML(l.quiz.question)}</h4>${l.quiz.options.map((o,i)=>`<button class="quiz-option" data-answer="${i}">${String.fromCharCode(65+i)}. ${escapeHTML(o)}</button>`).join('')}<div id="quiz-feedback" class="quiz-feedback" role="status">${progress[l.id]?.quiz?'✓ 이전에 퀴즈를 통과했습니다.':''}</div></div></section><div class="lesson-footer"><button id="previous" ${index===0?'disabled':''}>← 이전 레슨</button><button id="next" ${index===lessons.length-1?'disabled':''}>다음 레슨 →</button></div><details class="docs"><summary>공식 문서로 더 알아보기</summary>${l.docs.map(d=>`<a href="${escapeHTML(d)}" target="_blank" rel="noopener noreferrer">${escapeHTML(d.replace('https://',''))} ↗</a>`).join('')}</details>`;
+  $('lesson-content').innerHTML = `<div class="lesson-meta"><span class="eyebrow">MODULE 0${l.module} · LAB ${String(index+1).padStart(2,'0')}</span><span class="time">약 ${l.minutes}분</span></div><div id="lesson-completed" class="completed-badge" hidden>✓ 학습 완료</div><h1>${escapeHTML(l.title)}</h1><p class="intro">${escapeHTML(l.intro)}</p><div class="lesson-jumps"><button data-jump="lesson-terms">용어 설명</button><button data-jump="reading">개념 해설</button><button data-jump="api-contracts">API 계약</button><button data-jump="practice">실습</button><button data-jump="quiz-card">퀴즈</button></div>${l.id.startsWith('tls-') ? '<div class="flow"><span>ClientHello</span>→<span>키 교환 · 인증</span>→<span>암호화 통신</span></div>':''}${l.module === 3 ? '<div class="flow"><span>Application / libssl</span>→<span>EVP</span>→<span>Provider</span></div>':''}${renderTerms(l)}<section class="concept-card"><h3>알고 시작하기</h3><ul>${l.concepts.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul></section>${renderReading(l)}<div id="practice" class="practice-label"><span class="eyebrow">HANDS-ON · C++20 / OPENSSL 3.5.7</span><h2>직접 실행하고 바꿔보기</h2></div>${l.file?`<button class="open-example" id="open-example">↗ ${escapeHTML(l.file)} 편집기에서 열기</button><button id="open-header" class="header-button">공통 헤더 study.hpp</button>`:''}${l.steps.map((s,i)=>`<section class="step"><h3><span class="step-index">${i+1}</span>${escapeHTML(s.title)}</h3><p>${escapeHTML(s.text)}</p><div class="command"><div class="command-top"><span>BASH</span><button data-command="${i}">터미널에 입력 ↗</button></div><pre><code>${escapeHTML(s.command)}</code></pre></div><div class="expect"><b>EXPECTED</b><span>${escapeHTML(s.expect)}</span></div></section>`).join('')}<section class="challenge"><span class="eyebrow">TRY IT YOURSELF</span><p>${escapeHTML(l.challenge||'예상 결과와 실제 결과를 비교해 보세요.')}</p></section><section class="quiz-card" id="quiz-card"><div class="quiz"><span class="eyebrow">QUICK CHECK</span><h4>${escapeHTML(l.quiz.question)}</h4>${l.quiz.options.map((o,i)=>`<button class="quiz-option" data-answer="${i}">${String.fromCharCode(65+i)}. ${escapeHTML(o)}</button>`).join('')}<div id="quiz-feedback" class="quiz-feedback" role="status">${progress[l.id]?.quiz?'✓ 이전에 퀴즈를 통과했습니다.':''}</div></div></section><div class="lesson-footer"><button id="complete-lesson" aria-pressed="false">학습 완료로 표시</button><button id="previous" ${index===0?'disabled':''}>← 이전 레슨</button><button id="next" ${index===lessons.length-1?'disabled':''}>다음 레슨 →</button></div><details class="docs"><summary>공식 문서로 더 알아보기</summary>${l.docs.map(d=>`<a href="${escapeHTML(d)}" target="_blank" rel="noopener noreferrer">${escapeHTML(d.replace('https://',''))} ↗</a>`).join('')}</details>`;
   document.querySelectorAll('[data-command]').forEach(b => b.onclick = () => {
     if (!terminalReady()) return;
     switchTab('terminal'); term.paste(l.steps[Number(b.dataset.command)].command); term.focus();
@@ -44,24 +47,30 @@ function showLesson(index) {
   });
   if (l.file) { $('open-example').onclick = () => openFile(l.file).catch(e=>toast(e.message)); $('open-header').onclick = () => openFile('examples/cpp/study.hpp').catch(e=>toast(e.message)); }
   document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>scrollLessonTo($(b.dataset.jump)));
-  $('check').onclick = async () => {
-    const button = $('check'), output = $('check-output');
-    button.disabled = true; button.textContent = '검사 중…'; output.hidden = false; output.textContent = '컨테이너에서 검사하고 있습니다…';
-    try {
-      const result = await api(`/api/check/${l.id}`, {method:'POST'});
-      output.textContent = `${result.ok?'✓ 통과':'✗ 아직 통과하지 못했습니다'} · exit ${result.exit}\n${result.output || '이전 단계의 파일과 명령을 확인하세요.'}`;
-      progress[l.id] = {...progress[l.id], check: result.ok}; saveProgress();
-      button.textContent = result.ok ? '✓ 실습 검사 통과' : '다시 검사';
-      if (done(l)) toast('레슨 완료! 다음 레슨으로 진행해 보세요.');
-    } catch(e) { output.textContent = e.message; button.textContent = '다시 검사'; }
-    finally { button.disabled = false; }
-  };
+  function updateCompletion() {
+    $('complete-lesson').textContent = done(l) ? '완료 표시 해제' : '학습 완료로 표시';
+    $('complete-lesson').setAttribute('aria-pressed', String(done(l)));
+    $('lesson-completed').hidden = !done(l);
+  }
+  $('complete-lesson').onclick = () => {
+    progress[l.id] = {...progress[l.id], completed: !done(l)};
+    saveProgress();
+    updateCompletion();
   document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('[data-answer]').forEach(x=>x.classList.remove('correct','wrong'));
     const correct = Number(b.dataset.answer) === l.quiz.answer;
     b.classList.add(correct?'correct':'wrong');
     $('quiz-feedback').textContent = correct ? `✓ ${l.quiz.explanation}` : '다시 생각해 보세요. 위의 핵심 개념과 실행 결과를 확인하면 도움이 됩니다.';
-    if(correct) { progress[l.id] = {...progress[l.id], quiz:true}; saveProgress(); if(done(l)) toast('실습과 퀴즈를 모두 통과했습니다.'); }
+    if(correct) { progress[l.id] = {...progress[l.id], completed:done(l), quiz:true}; saveProgress(); }
+  });
+  };
+  updateCompletion();
+  document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('[data-answer]').forEach(x=>x.classList.remove('correct','wrong'));
+    const correct = Number(b.dataset.answer) === l.quiz.answer;
+    b.classList.add(correct?'correct':'wrong');
+    $('quiz-feedback').textContent = correct ? `✓ ${l.quiz.explanation}` : '다시 생각해 보세요. 위의 핵심 개념과 실행 결과를 확인하면 도움이 됩니다.';
+    if(correct) { progress[l.id] = {...progress[l.id], completed:done(l), quiz:true}; saveProgress(); }
   });
   $('previous').onclick=()=>showLesson(index-1); $('next').onclick=()=>showLesson(index+1);
   closeCourse(); setPane('lesson');

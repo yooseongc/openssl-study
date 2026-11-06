@@ -94,6 +94,13 @@ h1 { font-size: clamp(26px, 2.6vw, 36px); line-height: 1.45; letter-spacing: -1p
 .intro { margin: 0 0 var(--space-6); color: var(--muted); }
 .lesson-jumps { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-8); }
 .lesson-jumps button { background: transparent; }
+.lesson-terms { margin: var(--space-6) 0; padding: var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.lesson-terms h2 { margin: 0; font-size: 20px; }
+.lesson-terms > p { margin: var(--space-2) 0; color: var(--muted); font-size: 14px; }
+.lesson-terms dl { margin: 0; }
+.lesson-terms dl > div { padding: var(--space-3) 0; border-top: 1px solid var(--border); }
+.lesson-terms dt { font-weight: 700; color: var(--accent); }
+.lesson-terms dd { margin: var(--space-1) 0 0; font-size: 15px; overflow-wrap: anywhere; }
 .concept-card { background: var(--accent-soft); border: 1px solid #d7e6db; padding: var(--space-6); border-radius: var(--radius-lg); margin: var(--space-8) 0; }
 .concept-card h3 { font-size: 15px; color: var(--accent); margin: 0 0 var(--space-3); }
 .concept-card ul { margin: 0; padding-left: 20px; }
@@ -122,17 +129,14 @@ h1 { font-size: clamp(26px, 2.6vw, 36px); line-height: 1.45; letter-spacing: -1p
 .expect b { font-size: 10px; letter-spacing: .5px; color: var(--accent); }
 .challenge { padding: var(--space-6); border: 1px solid #e6dfc7; border-radius: var(--radius-lg); background: var(--warning); }
 .challenge p { margin: var(--space-2) 0 0; font-size: 15px; }
-.check-card { margin-top: var(--space-8); padding: var(--space-6); border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-lg); }
-.check-card h3 { margin: 0; font-size: 20px; }
-.check-card p { font-size: 14px; color: var(--muted); }
-.check-output { white-space: pre-wrap; overflow-wrap: anywhere; font: var(--code-size)/1.8 var(--font-mono); padding: var(--space-4); background: var(--canvas); border-radius: var(--radius); }
+.quiz-card { margin-top: var(--space-8); }
 .quiz { margin-top: var(--space-6); padding-top: var(--space-6); border-top: 1px solid var(--border); }
 .quiz h4 { font-size: 16px; margin: var(--space-2) 0 var(--space-4); }
 .quiz-option { display: block; width: 100%; text-align: left; margin: var(--space-2) 0; padding: var(--space-3) var(--space-4); font-size: 14px; font-weight: 400; }
 .quiz-option.correct { background: var(--accent-soft); border-color: #73a883; }
 .quiz-option.wrong { background: var(--error-soft); border-color: #d9a89a; }
 .quiz-feedback { font-size: 14px; color: var(--accent); }
-.lesson-footer { display: flex; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-8); }
+.lesson-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-8); }
 .docs { margin-top: var(--space-6); font-size: 13px; color: var(--muted); }
 .docs summary, .help summary { cursor: pointer; }
 .docs a { display: block; overflow-wrap: anywhere; margin-top: var(--space-2); }
@@ -237,7 +241,7 @@ body[data-tool="editor"] .lab-tabs { margin-top: 0; }
   #navigation { grid-template-columns: minmax(0, 1fr); }
   .api-card dl { grid-template-columns: 84px minmax(0, 1fr); }
   .api-card dt, .api-card dd { padding: var(--space-3); }
-  .concept-card, .check-card, .challenge { padding: var(--space-4); }
+  .concept-card, .challenge { padding: var(--space-4); }
   .header-button { margin: var(--space-2) 0 0; }
   .terminal-footer span { display: none; }
   .editor-actions button { font-size: 12px; }
