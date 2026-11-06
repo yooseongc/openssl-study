@@ -164,4 +164,4 @@ _mac['docs'].append('https://www.rfc-editor.org/rfc/rfc2104.html')
 _purposes = json.loads(Path(__file__).with_name('api_purposes.json').read_text(encoding='utf8'))
 for _lesson in LESSONS:
     for _api in _lesson.get('apis', []):
-        _api['purpose'] = _purposes[_api['name']]
+        _api.update(_purposes[_api['name']])

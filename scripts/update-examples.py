@@ -1,4 +1,4 @@
-"""Upgrade only unedited copies from the original release."""
+"""Upgrade only unedited copies from known shipped versions."""
 import hashlib
 import json
 from pathlib import Path
@@ -12,5 +12,5 @@ for name, digest in baseline.items():
     if dest.resolve() != dest or not dest.is_file():
         continue
     content = dest.read_bytes().replace(b'\r\n', b'\n')
-    if hashlib.sha256(content).hexdigest() == digest:
+    if hashlib.sha256(content).hexdigest() in ([digest] if isinstance(digest, str) else digest):
         shutil.copyfile(originals / name, dest)
