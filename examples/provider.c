@@ -8,6 +8,7 @@
 
 int main(int argc, char** argv) {
     const char* property = argc > 1 ? argv[1] : "provider=default";
+
     // 기본 종료 코드는 실패입니다. 모든 단계가 성공한 뒤에만 0으로 바꿉니다.
     int exit_code = 1;
 
@@ -21,18 +22,17 @@ int main(int argc, char** argv) {
     if (!provider) {
         goto end;
     }
+
     // libctx에 로드된 구현 중 property 조건을 만족하는 SHA256을 찾습니다. 성공한 md는 정리할 책임이
     // 있습니다.
     algorithm = EVP_MD_fetch(library_context, "SHA256", property);
     if (!algorithm) {
         goto end;
     }
-    printf(
-        "algorithm=%s provider=%s property=%s\n",
-        EVP_MD_get0_name(algorithm),
-        OSSL_PROVIDER_get0_name(EVP_MD_get0_provider(algorithm)),
-        property
-    );
+    printf("algorithm=%s provider=%s property=%s\n",
+           EVP_MD_get0_name(algorithm),
+           OSSL_PROVIDER_get0_name(EVP_MD_get0_provider(algorithm)),
+           property);
     exit_code = 0;
 
 // 실패한 위치와 관계없이 이미 생성한 자원을 역순으로 정리합니다.

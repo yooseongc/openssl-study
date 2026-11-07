@@ -2,8 +2,10 @@
 from pathlib import Path
 import json
 import shutil
+import hashlib
 format_file=Path('/home/student/lab/.clang-format')
-if not format_file.exists():shutil.copyfile('/opt/study.clang-format',format_file)
+if not format_file.exists() or hashlib.sha256(format_file.read_bytes().replace(b'\r\n',b'\n')).hexdigest() == '2b1731f2c8b9fa24b5f5878253ba3d75bd38594361d6d43153b987024cd549bd':
+    shutil.copyfile('/opt/study.clang-format',format_file)
 settings=Path('/home/student/ide-data/User/settings.json')
 settings.parent.mkdir(parents=True,exist_ok=True)
 if not settings.exists():

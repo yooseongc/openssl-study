@@ -21,11 +21,14 @@ int main(int argc, char** argv) try {
     const int min_tls_version_result =
         SSL_CTX_set_min_proto_version(tls_context.native_handle(), TLS1_3_VERSION);
     study::require(min_tls_version_result == 1, "min TLS version");
+
     asio::ssl::stream<tcp::socket> stream(event_loop, tls_context);
+
     // native_handle is BORROWED. Do not SSL_free it or drive SSL_read/SSL_write concurrently with
     // Asio.
     const int sni_result = SSL_set_tlsext_host_name(stream.native_handle(), hostname.c_str());
     study::require(sni_result == 1, "SNI");
+
     const int hostname_verification_result =
         SSL_set1_host(stream.native_handle(), hostname.c_str());
     study::require(hostname_verification_result == 1, "hostname verification");
@@ -38,6 +41,7 @@ int main(int argc, char** argv) try {
     asio::steady_timer deadline_timer(event_loop, std::chrono::seconds(8));
     bool finished = false;
     int exit_code = 1;
+
     // 타이머와 I/O 완료가 모두 도착할 수 있습니다. 첫 완료만 종료 코드를 정하고 소켓을 닫습니다.
 
     // 3. 첫 완료만 결과를 확정하고 타이머·소켓을 정리합니다.
@@ -80,9 +84,9 @@ int main(int argc, char** argv) try {
                         finish(1, "shutdown: " + end_ec.message());
                         return;
                     }
-                    finish(
-                        0, "ASIO VERIFIED; close_notify; " + response.substr(0, response.find('\n'))
-                    );
+                    finish(0,
+                           "ASIO VERIFIED; close_notify; " +
+                               response.substr(0, response.find('\n')));
                 });
                 return;
             }
@@ -92,8 +96,7 @@ int main(int argc, char** argv) try {
 
     // 5. TCP 연결 → TLS 핸드셰이크 → 요청 전송 → 응답 읽기 순서로 시작합니다.
     stream.next_layer().async_connect(
-        tcp::endpoint(asio::ip::make_address("127.0.0.1"), 4433),
-        [&](auto error) {
+        tcp::endpoint(asio::ip::make_address("127.0.0.1"), 4433), [&](auto error) {
             if (finished) {
                 return;
             }
@@ -120,13 +123,14 @@ int main(int argc, char** argv) try {
                     read_next_chunk();
                 });
             });
-        }
-    );
+        });
+
     // One thread executes callbacks. A multi-threaded io_context requires explicit serialization.
 
     // 6. 작업이 끝날 때까지 한 스레드에서 callback을 실행합니다.
     event_loop.run();
     return exit_code;
 } catch (const std::exception& e) {
+
     return study::failed(e);
 }

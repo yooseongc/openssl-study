@@ -8,17 +8,20 @@
 
 int main(int argc, char** argv) {
     const char* message = argc > 1 ? argv[1] : "hello openssl";
+
     // 기본 종료 코드는 실패입니다. 모든 단계가 성공한 뒤에만 0으로 바꿉니다.
     int exit_code = 1;
 
     unsigned char digest[EVP_MAX_MD_SIZE];
     unsigned int digest_length = 0;
+
     /* fetch returns an owned implementation: release with EVP_MD_free. */
     EVP_MD* algorithm = EVP_MD_fetch(NULL, "SHA256", "provider=default");
     EVP_MD_CTX* digest_context = EVP_MD_CTX_new();
     if (!algorithm || !digest_context) {
         goto cleanup;
     }
+
     // Init → Update → Final 순서입니다. 실패하면 cleanup에서 이미 할당한 객체를 정리합니다.
     if (EVP_DigestInit_ex2(digest_context, algorithm, NULL) != 1 ||
         EVP_DigestUpdate(digest_context, message, strlen(message)) != 1 ||

@@ -10,6 +10,7 @@
 int main(int argc, char** argv) {
     const char* hostname = argc > 1 ? argv[1] : "localhost";
     const char* cafile = argc > 2 ? argv[2] : "/home/student/lab/tls/ca.pem";
+
     // 기본 종료 코드는 실패입니다. 모든 단계가 성공한 뒤에만 0으로 바꿉니다.
     int exit_code = 1;
 
@@ -25,12 +26,14 @@ int main(int argc, char** argv) {
     if (SSL_CTX_load_verify_locations(tls_context, cafile, NULL) != 1) {
         goto end;
     }
+
     // BIO 체인이 SSL 객체를 소유합니다. SSL 포인터는 빌려 쓰고 마지막에 BIO_free_all로 체인을
     // 해제합니다.
     connection = BIO_new_ssl_connect(tls_context);
     if (!connection || BIO_get_ssl(connection, &tls_connection) != 1 || !tls_connection) {
         goto end;
     }
+
     /* SNI selects a virtual host; SSL_set1_host verifies the certificate name. */
     if (SSL_set_tlsext_host_name(tls_connection, hostname) != 1 ||
         SSL_set1_host(tls_connection, hostname) != 1) {
@@ -43,12 +46,10 @@ int main(int argc, char** argv) {
     if (SSL_get_verify_result(tls_connection) != X509_V_OK) {
         goto end;
     }
-    printf(
-        "Verified TLS: %s / %s / hostname=%s\n",
-        SSL_get_version(tls_connection),
-        SSL_get_cipher_name(tls_connection),
-        hostname
-    );
+    printf("Verified TLS: %s / %s / hostname=%s\n",
+           SSL_get_version(tls_connection),
+           SSL_get_cipher_name(tls_connection),
+           hostname);
     const char request[] = "GET / HTTP/1.0\r\nHost: localhost\r\n\r\n";
     size_t written = 0, received = 0;
     if (SSL_write_ex(tls_connection, request, strlen(request), &written) != 1) {

@@ -165,3 +165,6 @@ _purposes = json.loads(Path(__file__).with_name('api_purposes.json').read_text(e
 for _lesson in LESSONS:
     for _api in _lesson.get('apis', []):
         _api.update(_purposes[_api['name']])
+
+from concept_connections import enrich as connect_concepts
+connect_concepts(LESSONS)
