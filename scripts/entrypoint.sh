@@ -20,4 +20,5 @@ cd /home/student/lab
 EOF
 lab-server start
 cd /opt/app
-exec python server.py
+python /opt/scripts/setup-ide.py
+exec python /opt/scripts/supervise.py

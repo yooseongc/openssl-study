@@ -1,0 +1,11 @@
+{
+  "name": "study-bridge",
+  "displayName": "OpenSSL Study",
+  "publisher": "openssl-study",
+  "version": "1.0.0",
+  "engines": {"vscode": "^1.90.0"},
+  "main": "./extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "extensionKind": ["workspace"],
+  "description": "Connect the local lesson page to the study workspace."
+}

@@ -15,6 +15,7 @@ from aiohttp import web, WSMsgType
 from curriculum import LESSONS
 from checks import check
 from editor_run import run_example
+import ide_proxy
 
 ROOT = Path('/home/student/lab')
 STATIC = Path('/opt/app/static')
@@ -28,17 +29,18 @@ async def local_only(request, handler):
     origin = request.headers.get('Origin')
     if origin and origin != f'http://{request.host}':
         raise web.HTTPForbidden(text='Origin rejected')
-    if request.path.startswith('/api/') or request.path == '/ws':
+    if request.path.startswith('/api/') or request.path == '/ws' or request.path.startswith('/ide/'):
         if not secrets.compare_digest(request.cookies.get('study_session', ''), TOKEN):
             raise web.HTTPForbidden(text='Open the study home page first')
-        if request.method != 'GET' and request.headers.get('X-Study-Request') != '1':
+        if request.path.startswith('/api/') and request.method != 'GET' and request.headers.get('X-Study-Request') != '1':
             raise web.HTTPForbidden(text='Missing request header')
     response = await handler(request)
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN' if request.path.startswith('/ide/') else 'DENY'
     response.headers['Referrer-Policy'] = 'no-referrer'
     response.headers['Cache-Control'] = 'no-store'
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'"
+    if not request.path.startswith('/ide/'):
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'"
     return response
 
 async def index(request):
@@ -175,11 +177,15 @@ async def shutdown(app):
         await ws.close(code=1001, message=b'Shutting down')
 
 app = web.Application(middlewares=[local_only], client_max_size=300_000)
+app.cleanup_ctx.append(ide_proxy.lifecycle)
 app['check_lock'] = asyncio.Lock()
 app['run_lock'] = asyncio.Lock()
 app.add_routes([web.get('/', index), web.get('/health', lambda r: web.json_response({'ok': True})),
     web.get('/api/info', info), web.get('/api/files', files), web.get('/api/file', file_get),
     web.put('/api/file', file_put), web.post('/api/run', editor_run), web.post('/api/check/{id}', checkpoint), web.get('/ws', terminal)])
+app.router.add_route('*', '/ide/{path:.*}', ide_proxy.proxy)
+app.router.add_get('/api/ide', ide_proxy.bridge)
+app.router.add_post('/api/ide', ide_proxy.bridge)
 app.router.add_static('/static/', STATIC)
 app.on_shutdown.append(shutdown)
 web.run_app(app, host='0.0.0.0', port=8080, print=None)

@@ -6,13 +6,14 @@ services:
       - "127.0.0.1:8440:8080"
     volumes:
       - lab-data:/home/student/lab
+      - ide-data:/home/student/ide-data
     init: true
     restart: unless-stopped
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
-    pids_limit: 128
-    mem_limit: 768m
+    pids_limit: 256
+    mem_limit: 2g
     cpus: 2
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
@@ -21,3 +22,4 @@ services:
       retries: 5
 volumes:
   lab-data:
+  ide-data:

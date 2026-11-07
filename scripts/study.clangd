@@ -1,0 +1,15 @@
+# Language standards belong to each language, not to global fallback flags.
+CompileFlags:
+  Add: [-I/home/student/lab/examples/cpp]
+---
+If:
+  PathMatch: '.*\.c'
+CompileFlags:
+  Remove: [-std=*]
+  Add: [-std=c11]
+---
+If:
+  PathMatch: '.*\.(cpp|cc|cxx|hpp|hh|hxx)'
+CompileFlags:
+  Remove: [-std=*]
+  Add: [-std=c++20]

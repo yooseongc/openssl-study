@@ -168,26 +168,16 @@ kbd { padding: 0 var(--space-1); border: 1px solid #45606c; border-radius: 3px; 
 .editor-tools button { font-size: 12px; padding: var(--space-2); }
 .file-path { display: flex; align-items: center; gap: var(--space-2); font-size: 12px; color: var(--muted); margin-bottom: var(--space-2); }
 .file-path input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2); font: 12px var(--font-mono); }
-#editor-dialog { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: var(--surface); }
-#editor-dialog[open] { display: flex; }
-#editor-dialog .editor-panel { border: 0; border-radius: 0; }
-#edit-stack { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.results-bar { display: flex; gap: var(--space-2); align-items: center; }
-#result-divider { flex: 1; height: 24px; display: grid; place-items: center; cursor: row-resize; touch-action: none; }
-#result-divider span { width: 60px; height: 4px; background: var(--muted); border-radius: 4px; }
-#result-divider:focus-visible { outline: 2px solid var(--accent); }
-#result-toggle { padding: 2px 8px; }
-#result-output { flex: 0 1 var(--result-share, 32%); min-height: 0; overflow: auto; background: var(--canvas); padding: var(--space-2); font-size: 13px; }
-#result-output pre { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
-.error-jump { padding: 0; color: var(--accent); text-decoration: underline; font: inherit; }
+#ide-frame { flex: 1; width: 100%; min-height: 0; border: 0; background: #1f1f1f; }
+#ide-status { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); align-self: center; }
+.ide-file { flex-shrink: 0; font: 11px/1.5 var(--font-mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px 0; }
+body.ide-expanded .editor-panel { position: fixed; inset: 0; z-index: 15; border-radius: 0; }
+body.ide-expanded { overflow: hidden; }
 #args-guide { position: relative; font-size: 13px; }
 #args-guide summary { cursor: pointer; color: var(--accent); }
 .preset-menu { position: absolute; z-index: 5; bottom: 100%; left: 0; right: 0; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); max-height: 30vh; overflow: auto; }
 .preset-menu p { margin: 0 0 8px; }
 #preset-options { display: flex; flex-wrap: wrap; gap: 4px; }
-#editor { flex: 1; min-height: 0; min-width: 0; }
-#editor .CodeMirror { height: 100%; font: var(--code-size)/1.6 var(--font-mono); border-radius: var(--radius); }
-#editor:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 .editor-run { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-2); }
 .editor-run .file-path { flex: 1 1 150px; margin: 0; }
 .editor-actions { display: flex; gap: var(--space-2); margin-left: auto; }
