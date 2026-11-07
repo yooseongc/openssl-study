@@ -14,7 +14,7 @@ async def main():
             assert r.status == 200
         async with s.get(base+'/api/info') as r:
             data=await r.json()
-            assert len(data['lessons']) == 28 and data['openssl'].startswith('OpenSSL 3.5.7 ')
+            assert len(data['lessons']) == 33 and data['openssl'].startswith('OpenSSL 3.5.7 ')
         async with s.get(base+'/api/info', headers={'Origin':'https://other.example'}) as r:
             assert r.status == 403
         async with s.get(base+'/health', headers={'Host':'other.example'}) as r:
@@ -40,6 +40,6 @@ async def main():
                     text += message.data.decode(errors='replace') if isinstance(message.data,bytes) else str(message.data)
         async with s.post(base+'/api/check/tls-1',headers={'X-Study-Request':'1'}) as r:
             assert (await r.json())['ok']
-    print('PASS: session boundary; Origin/Host rejection; path traversal rejection; file save/load; real PTY input/resize/output; 28 lessons; OpenSSL 3.5.7; lesson check API.')
+    print('PASS: session boundary; Origin/Host rejection; path traversal rejection; file save/load; real PTY input/resize/output; 33 lessons; OpenSSL 3.5.7; lesson check API.')
 
 asyncio.run(main())

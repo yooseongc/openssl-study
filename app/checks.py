@@ -37,3 +37,10 @@ async def check(lid):
             pass
         await proc.communicate()
         return {'ok': False, 'output': '검사 시간 초과. lab-server status로 서버와 프로그램을 확인하세요.', 'exit': 124}
+
+# Internal regression checks; no automatic exercise checker is exposed in the UI.
+COMMANDS['quic-basics'] = "timeout 12 ./examples/cpp/quic_local ok | grep 'PASS ok'"
+COMMANDS['quic-connection'] = COMMANDS['quic-basics']
+COMMANDS['quic-streams'] = "timeout 12 ./examples/cpp/quic_local multi | grep 'stream=8'"
+COMMANDS['quic-events'] = "timeout 12 ./examples/cpp/quic_local epoll | grep 'PASS epoll'"
+COMMANDS['quic-failures'] = "python /opt/scripts/quic_test.py --existing"

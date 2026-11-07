@@ -1,6 +1,6 @@
 # OpenSSL Study — C++ 개발자를 위한 기초부터 API까지
 
-암호학·TLS·OpenSSL API를 기초부터 배우되 실제 C++ 코드의 인자, 소유권, 반환값, 실패 경로까지 이해하는 로컬 학습실입니다. **OpenSSL 3.5.7 + C++20**, 4개 영역의 **28개 한국어 레슨**, **53개 API 계약 설명**, **13개 C++ 예제**가 있습니다. 안내 시간 합계는 약 13시간이며 직접 입력·변형 실험에 따라 더 걸릴 수 있습니다.
+암호학·TLS·OpenSSL API를 기초부터 배우되 실제 C++ 코드의 인자, 소유권, 반환값, 실패 경로까지 이해하는 로컬 학습실입니다. **OpenSSL 3.5.7 + C++20**, 5개 영역의 **33개 한국어 레슨**, **63개 API 계약 설명**, **14개 C++ 예제**가 있습니다. 안내 시간 합계는 약 16시간이며 직접 입력·변형 실험에 따라 더 걸릴 수 있습니다.
 
 TPROXY나 프록시 구현을 가르치는 프로젝트는 아닙니다. 일반 OpenSSL의 기초를 익힌 뒤 마지막에 epoll과 Boost.Asio를 연결합니다.
 
@@ -119,7 +119,7 @@ docker compose exec -T study python /opt/scripts/web_test.py
 ```
 
 - `cpp_test.py`: 임시 폴더에서 13개 C++ 예제 빌드, SHA-256/HMAC/HKDF 독립 계산 비교, AEAD 3종 변조, 서명·키 타입 오류, 인증서 검증, 동기·epoll·Asio TLS, 갑작스러운 EOF, deadline, RAII ASan/UBSan 정상·예외 경로.
-- `curriculum_test.py`: 임시 폴더에서 화면의 28개 레슨 명령과 체크포인트를 순서대로 실행.
+- `curriculum_test.py`: 임시 폴더에서 화면의 33개 레슨 명령과 체크포인트를 순서대로 실행.
 - `web_test.py`: 세션/Origin/Host, 경로 제한, 저장·읽기, WebSocket PTY, 교재 API.
 
 학습자가 편집한 파일을 바꾸지 않습니다. 전체 검사에는 수십 초 이상 걸릴 수 있고 실습 서버가 실행 중이어야 합니다. 기존 `smoke_test.py`는 보존된 C 예제용입니다.
@@ -145,3 +145,13 @@ docker compose exec -T study python /opt/scripts/web_test.py
 - 기존 `lab-data`를 유지하고 IDE 설정·세션 저장용 `ide-data` 볼륨을 추가합니다. 초기 설정은 사용자가 수정한 설정 파일을 덮어쓰지 않습니다. 컨테이너 메모리 한도는 2GB입니다.
 - IDE 확장은 이미지에 포함됩니다. 추가 설치한 확장은 컨테이너 재생성 시 유지되지 않으므로 필요한 확장은 Dockerfile에 고정해 추가합니다.
 - IDE 접속 검사는 `docker compose exec -T study python /opt/scripts/ide_test.py`로 실행합니다.
+
+## QUIC 전용 섹션 (OpenSSL 3.5.7)
+
+목차의 다섯 번째 영역에서 QUIC/TLS/HTTP3 구분, 연결·인증·ALPN, 스트림·FIN·종료, 실패 진단, epoll과 타이머를 순서대로 학습합니다. 기존 학습 완료 기록은 유지되고 전체 레슨 수는 33개입니다.
+
+`cd ~/lab && study-build examples/cpp/quic_local.cpp ok`로 시작합니다. `multi`, `bad-host`, `bad-alpn`, `epoll` 실행인자를 IDE에서도 선택할 수 있습니다. 서버는 실행마다 loopback 임의 UDP 포트에서 자동으로 생성·정리됩니다. 외부 서버나 추가 포트 공개가 필요하지 않습니다. 이름·ALPN 실패는 exit=1이 예상 결과입니다.
+
+이 예제는 study/1 echo 프로토콜이며 HTTP/3 구현이 아닙니다. multi는 스트림을 순서대로 교환하고, epoll 모드는 클라이언트 I/O만 비동기입니다. 종료는 blocking rapid shutdown으로 단순화했습니다. 연결 이동·0-RTT·손실 주입·부하 테스트는 포함하지 않습니다. 일반적인 API 계약과 실습의 제한을 레슨에 구분해 설명합니다.
+
+`docker compose exec -T study python /opt/scripts/quic_test.py`는 임시 작업 공간에서 컴파일, 정상 echo, 세 스트림 ID, epoll, 두 가지 거부 경로를 검증합니다. 기존 학생 파일은 수정하지 않습니다.

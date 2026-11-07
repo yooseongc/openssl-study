@@ -1,4 +1,29 @@
 const exampleGuides = {
+  "examples/cpp/quic_local.cpp": {
+  "desc": "로컬 서버를 자동 실행·정리합니다. ~/lab에서 실행하며 tls 인증서를 사용합니다. HTTP/3가 아닌 study/1 echo 프로토콜입니다.",
+  "choices": [
+    [
+      "ok",
+      "인증 + 스트림 echo"
+    ],
+    [
+      "multi",
+      "한 연결에서 스트림 0·4·8"
+    ],
+    [
+      "bad-host",
+      "이름 검증 실패: exit=1"
+    ],
+    [
+      "bad-alpn",
+      "ALPN 불일치: exit=1"
+    ],
+    [
+      "epoll",
+      "비동기 클라이언트 + QUIC 타이머"
+    ]
+  ]
+},
   "examples/cpp/digest.cpp": {
     "desc": "첫 인자는 bytes 또는 hash이고, hash 뒤에는 메시지 하나를 넣습니다.",
     "choices": [

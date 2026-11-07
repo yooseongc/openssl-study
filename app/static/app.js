@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const scrollBehavior = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
-const modules = ['암호학 기초와 TLS', 'X.509 인증서', 'OpenSSL 3 구조', 'OpenSSL 프로그래밍'];
+const modules = ['암호학 기초와 TLS', 'X.509 인증서', 'OpenSSL 3 구조', 'OpenSSL 프로그래밍', 'QUIC: 전송·스트림·이벤트'];
 let lessons = [], current = 0, socket, dirty = false, loadedPath = '', toastTimer;
 let progress = {};
 try { progress = JSON.parse(localStorage.getItem('openssl-study-progress-v1') || '{}'); } catch { progress = {}; }

@@ -168,3 +168,6 @@ for _lesson in LESSONS:
 
 from concept_connections import enrich as connect_concepts
 connect_concepts(LESSONS)
+
+from quic_lessons import LESSONS as QUIC_LESSONS
+LESSONS.extend(QUIC_LESSONS)
