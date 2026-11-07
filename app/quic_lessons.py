@@ -3,13 +3,14 @@ from advanced import section, step
 
 DOC = 'https://docs.openssl.org/3.5/'
 FILE = 'examples/cpp/quic_local.cpp'
+LAB_CONTEXT = {'OSSL_QUIC_client_method() / OSSL_QUIC_server_method()': 'serve()는 서버용 context를, main()은 클라이언트용 context를 만듭니다. 같은 라이브러리 안에서 두 역할을 구분하는 출발점입니다.', 'SSL_new_listener(ctx, flags) / SSL_accept_connection(listener, flags)': 'serve()의 listener는 UDP 수신 지점입니다. accept_connection이 돌려준 connection을 통해 그 상대가 만든 스트림을 받습니다.', 'SSL_set_alpn_protos(ssl, protos, protos_len)': 'main()의 offered는 길이 바이트와 study/1 이름을 담습니다. bad-alpn에서는 마지막 문자를 2로 바꾸어 서버의 study/1 선택과 맞지 않게 만듭니다.', 'SSL_new_stream(conn, flags)': 'main()의 반복문은 매번 새 양방향 stream을 만들고 request를 보냅니다. multi에서 세 번 반복하므로 ID 0, 4, 8을 관찰합니다.', 'SSL_stream_conclude(stream, flags)': 'send_message()에서 메시지 쓰기가 성공한 뒤 송신 FIN을 예약합니다. receive_message()가 반대 방향 응답을 계속 읽을 수 있다는 점을 확인하세요.', 'SSL_shutdown_ex(conn, flags, args, args_len)': 'main()의 마지막 호출은 모든 echo를 확인한 뒤 rapid 종료를 시작합니다. closed >= 0인 이유는 0도 정상적인 종료 진행 상태이기 때문입니다.', 'SSL_get_error(ssl, ret)': 'transfer()에서 operation()의 반환값을 즉시 분류합니다. WANT이면 이벤트를 기다리고 재시도하며, ZERO_RETURN이면 수신 종료를 호출자에게 알립니다.', 'SSL_set_blocking_mode(ssl, blocking)': 'main()에서 epoll 모드일 때만 connection을 비동기로 바꿉니다. 마지막 rapid 종료 앞에서는 다시 blocking으로 바꾸므로 프로그램 전체가 비동기인 것은 아닙니다.', 'SSL_get_event_timeout(ssl, tv, is_infinite)': 'wait_events()는 다음 QUIC 타이머까지 남은 시간을 epoll_wait의 대기 시간에 반영합니다. 100ms 상한은 별도로 작업 deadline을 점검하기 위한 데모 정책입니다.', 'SSL_handle_events(ssl)': 'wait_events()는 fd 이벤트나 타이머 이후 이 함수를 호출합니다. serve()도 응답 전송 뒤 이벤트 처리를 이어가 마지막 데이터의 재전송 기회를 남깁니다.'}
 LESSONS = []
 
 
 def card(name, purpose, args, ownership, returns, failure, usage):
     return dict(name=name, purpose=purpose, args=args, ownership=ownership,
                 returns=returns, failure=failure, usage=usage,
-                lab='quic_local.cpp에서 해당 호출과 바로 다음 반환값 검사를 함께 읽으세요.')
+                lab=LAB_CONTEXT[name])
 
 
 def run(mode, expected, text='컴파일 후 로컬 UDP 서버와 클라이언트를 실행하고 자식 프로세스를 정리합니다.'):

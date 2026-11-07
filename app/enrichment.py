@@ -54,7 +54,7 @@ def enrich(lessons):
       [api('OpenSSL_version(OPENSSL_VERSION)','현재 로드된 라이브러리 버전 문자열 조회.','반환 문자열은 빌린 읽기 전용 데이터. free하지 않습니다.','const char*.','컴파일 시 OPENSSL_VERSION_TEXT와 실행 버전을 혼동하지 않습니다.')],
       'ldd로 예제 바이너리가 어느 libssl.so.3와 libcrypto.so.3를 사용하는지 확인하세요.')
     set_('arch-2',[
-      section('명시적 fetch의 수명','libctx, provider, md 순으로 만들고 역순으로 정리합니다. 알고리즘 객체가 사용하는 환경을 먼저 정리하지 않도록 구조를 분명히 합니다. get0_provider 결과는 조회를 위한 빌린 포인터입니다.',
+      section('명시적 fetch의 수명','provider.cpp는 library_context, provider, algorithm 순서로 객체를 만듭니다. C++ 지역 객체는 선언의 역순으로 파괴되므로 algorithm을 먼저 해제하고 Provider와 라이브러리 컨텍스트를 나중에 정리합니다. 알고리즘 객체가 사용하는 환경을 먼저 정리하지 않도록 구조를 분명히 합니다. get0_provider 결과는 조회를 위한 빌린 포인터입니다.',
        'nullptr libctx는 아무 환경도 없다는 뜻이 아니라 기본 라이브러리 컨텍스트 사용입니다. 별도 OSSL_LIB_CTX는 설정과 Provider 선택을 분리할 때 유용하며 TLS 연결 객체 SSL과 같은 개념이 아닙니다.'),
       section('선택 조건이 실패하는 경우','SHA256이라는 이름이 존재해도 provider=missing 조건을 만족하는 구현은 없습니다. fetch의 nullptr을 확인하지 않고 Init에 넘기는 대신 이 지점에서 원인을 진단합니다.',
        '매 작은 블록마다 같은 구현을 새로 fetch할 필요는 없습니다. 적절한 수명 범위에서 구현 객체를 유지할 수 있습니다. 다만 계산 상태인 EVP_MD_CTX를 여러 동시 연산이 공유하도록 만들지는 마세요.')],
@@ -69,7 +69,7 @@ def enrich(lessons):
       'legacy를 명시적으로 로딩한 명령 다음에 기본 list -providers를 실행해 프로세스별 상태 차이를 확인하세요.')
     set_('code-1',[
       section('이제 C++ 객체 관점으로 다시 읽기','앞부분에서는 해시의 개념을 배웠습니다. 여기서는 study.hpp의 deleter, unique_ptr, require, 예외 처리와 각 EVP 호출의 인자를 추적합니다. 같은 예제를 다른 질문으로 다시 읽는 레슨입니다.',
-       'md.get()과 ctx.get()은 빌린 raw 포인터를 API에 전달할 뿐 소유권을 넘기지 않습니다. API 호출이 실패하면 require가 예외를 던지고 지역 핸들이 역순으로 해제됩니다. main의 catch는 오류를 출력하고 프로세스 종료 코드 1을 반환합니다.'),
+       'digest.cpp에서 algorithm.get()과 digest_context.get()은 각각 EVP_MD*와 EVP_MD_CTX*를 반환합니다. 여기서 get()은 소유권을 이전하지 않습니다. API는 호출에 필요한 객체를 사용하고, 해제 책임은 C++ 핸들에 남습니다. API 호출이 실패하면 require가 예외를 던지고 지역 핸들이 역순으로 해제됩니다. main의 catch는 오류를 출력하고 프로세스 종료 코드 1을 반환합니다.'),
       section('문자열과 버퍼의 타입','Update 길이는 size_t, Final 출력 길이는 unsigned int입니다. 함수 원형을 읽고 타입을 맞춥니다. 다른 API의 int 길이 인자에 임의 크기 size_t를 캐스팅하는 습관을 만들지 않습니다.',
        'std::string의 data()와 size()를 함께 쓰면 NUL을 포함하는 데이터도 계산할 수 있습니다. 명령행 인자는 NUL을 직접 포함할 수 없으므로 바이너리 실험은 코드 내부 배열이나 파일 입력으로 확장하세요.')],
       [api('EVP_DigestInit_ex2(ctx, md, params)','이번 계산의 context, fetch한 digest, 추가 params(없으면 nullptr).','ctx/md 소유권은 호출자 유지.','1 성공, 0 실패.','Init 실패 뒤 Update/Final을 이어서 호출하지 않습니다.'),

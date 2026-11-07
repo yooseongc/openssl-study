@@ -156,7 +156,7 @@ _mac['sections'].insert(0, {
     'paragraphs': [
         '송신자와 수신자가 비밀키 K를 공유한다고 해봅시다. 송신자는 메시지 hello와 K로 HMAC-SHA256 태그를 계산하고, 메시지와 태그를 보냅니다. 수신자도 받은 메시지와 K로 태그를 계산해서 받은 태그와 비교합니다. 공격자가 메시지만 바꾸면 검증이 실패하며, K를 모르면 바뀐 메시지에 맞는 태그를 만드는 것이 어렵습니다.',
         'MAC은 메시지 인증 코드라는 넓은 범주이고 HMAC은 해시를 사용하는 MAC 방식입니다. HMAC-SHA256이라는 이름은 내부에서 SHA-256을 쓴다는 뜻입니다. 원문을 숨기는 기능은 별도로 필요합니다. 또한 같은 키를 가진 수신자도 태그를 만들 수 있으므로 특정 한 사람이 작성했다는 공개적인 증명으로 사용할 수는 없습니다.',
-        'random_mac.cpp의 mac hello는 계산한 태그와 같은 태그를 비교합니다. tamper hello는 받은 태그 한 비트를 바꿉니다. 두 실행의 MAC VERIFIED와 MAC REJECTED를 비교하세요.'
+        'random_mac.cpp에서는 먼저 tag를 계산하고 received = tag로 받은 태그를 모사합니다. tamper hello는 received의 한 비트만 뒤집습니다. 따라서 이 실습은 정상·변조 태그의 비교를 보여주며, 실제 수신 메시지로 HMAC을 다시 계산하는 수신자 전체 코드는 아닙니다. MAC VERIFIED와 MAC REJECTED의 차이를 이 범위 안에서 해석하세요.'
     ]
 })
 _mac['docs'].append('https://www.rfc-editor.org/rfc/rfc2104.html')
@@ -171,3 +171,6 @@ connect_concepts(LESSONS)
 
 from quic_lessons import LESSONS as QUIC_LESSONS
 LESSONS.extend(QUIC_LESSONS)
+
+from reading_routes import enrich as connect_reading
+connect_reading(LESSONS)

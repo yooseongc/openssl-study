@@ -237,3 +237,77 @@ body[data-tool="editor"] .lab-tabs { margin-top: 0; }
   .editor-actions button { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+/* Separate reference workspace: same tokens, one internal reading scroll. */
+body.reference-shell { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+.reference-shell .header-actions { flex-wrap: wrap; gap: 16px; }
+.reference-main { width: var(--page-width); margin: 0 auto; padding: 24px 0 48px; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.reference-heading h1 { margin: 8px 0; font-size: clamp(26px, 3vw, 36px); }
+.reference-heading p { margin: 8px 0 24px; }
+.reference-topics { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.reference-topics a { padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); text-decoration: none; }
+.reference-topics a[aria-current="page"], .reference-shell .header-actions a[aria-current="page"] { background: var(--accent-soft); font-weight: 700; }
+#flow-content, .reference-api { padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.reference-scope { padding: 16px; background: var(--warning); border-radius: var(--radius); }
+.flow-explorer { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; margin: 24px 0; }
+.diagram-steps { list-style: none; padding: 0; margin: 0; }
+.diagram-steps li:not(:last-child)::after { content: '↓'; display: block; text-align: center; color: var(--accent); font-size: 24px; line-height: 32px; }
+.diagram-steps button { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 16px; text-align: left; font-size: 15px; line-height: 1.7; }
+.diagram-steps button[aria-pressed="true"] { border: 2px solid var(--accent); background: var(--accent-soft); }
+.diagram-steps button strong, .diagram-steps button small, .diagram-steps button span > span { display: block; }
+.diagram-steps small { color: var(--muted); font-weight: 400; }
+.diagram-steps .step-index { flex-shrink: 0; }
+.diagram-detail { background: var(--accent-soft); padding: 24px; border-radius: var(--radius-lg); }
+.diagram-detail h3 { margin: 8px 0; font-size: 23px; }
+.diagram-formula { font-weight: 700; padding: 16px; background: var(--surface); border-radius: var(--radius); }
+.diagram-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
+.reference-table { overflow-x: auto; }
+.reference-table table { border-collapse: collapse; width: 100%; font-size: 15px; }
+.reference-table caption { text-align: left; color: var(--muted); margin-bottom: 8px; }
+.reference-table th, .reference-table td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: top; }
+.reference-table thead { background: var(--accent-soft); }
+.reference-search { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; }
+.reference-search label:first-child { flex: 1; min-width: 200px; }
+.reference-search label { font-size: 14px; font-weight: 600; }
+.reference-search input, .reference-search select { display: block; width: 100%; margin-top: 8px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+#api-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.reference-api h2 { font: 600 19px/1.6 var(--font-mono); margin: 8px 0 16px; }
+.reference-api h3 { font-size: 16px; }
+.reference-api dl { margin: 0; }
+.reference-api dl > div { border-top: 1px solid var(--border); padding: 12px 0; }
+.reference-api dt { font-weight: 700; font-size: 14px; color: var(--accent); }
+.reference-api dd { margin: 4px 0 0; }
+.reference-main p, .reference-main h2, .reference-main a, .reference-main td, .reference-main th, .reference-main dd { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .reference-main { width: 100%; padding: 16px; }
+  .flow-explorer, #api-results { grid-template-columns: minmax(0, 1fr); }
+  .reference-shell .topbar { height: auto; min-height: 100px; }
+  .reference-shell .topbar-inner { width: 100%; padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+  .reference-shell .header-actions { display: flex; gap: 16px; }
+  #flow-content, .reference-api { padding: 16px; }
+  .diagram-detail { padding: 16px; }
+  .reference-table th, .reference-table td { padding: 8px; }
+}
+
+.tls-sequence { margin: 24px 0; padding: 16px; background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; }
+.tls-sequence figcaption { font-weight: 600; margin-bottom: 8px; }
+.tls-sequence svg { display: block; width: 100%; max-height: 450px; min-width: 560px; }
+.tls-sequence text { fill: var(--text); font: 16px var(--font-sans); }
+.tls-sequence .lifeline { stroke: var(--muted); stroke-dasharray: 5 5; }
+.tls-sequence .message { stroke: var(--accent); stroke-width: 2; }
+.tls-sequence path { fill: var(--accent); }
+
+/* Reading context and source excerpts share the lesson's inner scroll. */
+.reading-route { padding: 20px; margin: 24px 0; background: var(--accent-soft); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.reading-route h2 { font-size: 22px; margin: 12px 0; }
+.reading-route p { margin: 8px 0; }
+.teaching-code { margin: 16px 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--canvas); }
+.teaching-code figcaption { font-size: 13px; overflow-wrap: anywhere; margin-bottom: 12px; }
+.teaching-code pre, .dictionary-code pre { white-space: pre; overflow-wrap: normal; overflow-x: auto; max-width: 100%; font: 13px/1.8 var(--font-mono); padding: 16px; background: var(--terminal); color: var(--terminal-text); border-radius: var(--radius); }
+.code-note { font-size: 13px; color: var(--muted); }
+.dictionary-code { margin: 12px 0; }
+.dictionary-code summary { cursor: pointer; overflow-wrap: anywhere; }
+
+.teaching-code pre code, .dictionary-code pre code { overflow-wrap: normal; }
+
+.api-practice-links { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }

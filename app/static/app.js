@@ -30,21 +30,33 @@ function renderNav() {
 function renderTerms(l) {
   return `<section class="lesson-terms" id="lesson-terms" aria-labelledby="terms-heading"><h2 id="terms-heading">이번 실습의 용어부터</h2><p>이름의 뜻과 사용 이유를 먼저 읽고 실습을 시작하세요.</p><dl>${(l.terms || []).map(t => `<div><dt>${escapeHTML(t.name)}</dt><dd>${escapeHTML(t.meaning)}</dd></div>`).join('')}</dl></section>`;
 }
+
+function renderCodeExcerpt(code) {
+  if (!code) return '';
+  return `<figure class="teaching-code"><figcaption><code>${escapeHTML(code.file)}</code> · 배포 예제 ${code.line}행부터<br>찾을 표현: <code>${escapeHTML(code.anchor)}</code></figcaption><pre><code>${escapeHTML(code.text)}</code></pre><button data-source-file="${escapeHTML(code.file)}">이 파일을 편집기에서 열기</button></figure>`;
+}
+function renderReadingRoute(l) {
+  const r=l.reading;
+  if(!r)return '';
+  return `<section class="reading-route" aria-label="이번 레슨의 질문"><p>${escapeHTML(r.before)}</p><h2>${escapeHTML(r.question)}</h2><p>${escapeHTML(r.observe)}</p><a href="/static/reference.html#flow/${encodeURIComponent(r.flow)}" target="_blank" rel="noopener">흐름 지도로 먼저 보기 ↗</a><span> · </span><a href="/static/reference.html#api" target="_blank" rel="noopener">API 사전 ↗</a></section>`;
+}
+
 function renderReading(l) {
-  return `<div class="reading" id="reading">${(l.sections||[]).map(s=>`<article><h3>${escapeHTML(s.title)}</h3>${s.paragraphs.map(p=>`<p>${escapeHTML(p)}</p>`).join('')}</article>`).join('')}</div><section class="api-contracts" id="api-contracts"><span class="eyebrow">API CONTRACT</span><h2>함수의 역할부터 호출 방법까지</h2>${(l.apis||[]).map(a=>`<article class="api-card"><h3><code>${escapeHTML(a.name)}</code></h3><dl><dt>하는 일</dt><dd>${escapeHTML(a.purpose)}</dd><dt>사용 순서·제약</dt><dd>${escapeHTML(a.usage)}</dd><dt>인자</dt><dd>${escapeHTML(a.args)}</dd><dt>소유권 / 수명</dt><dd>${escapeHTML(a.ownership)}</dd><dt>반환값</dt><dd>${escapeHTML(a.returns)}</dd><dt>실패 시</dt><dd>${escapeHTML(a.failure)}</dd><dt>실습에 연결하기</dt><dd>${escapeHTML(a.lab)}</dd></dl></article>`).join('')}</section>`;
+  return `<div class="reading" id="reading">${(l.sections||[]).map(s=>`<article><h3>${escapeHTML(s.title)}</h3>${s.paragraphs.map(p=>`<p>${escapeHTML(p)}</p>`).join('')}${s.code?renderCodeExcerpt(s.code):''}</article>`).join('')}${l.reading?.code && !(l.sections||[]).some(s=>s.code)?`<article><h3>설명과 함께 볼 코드</h3><p>아래는 배포 예제의 일부입니다. 편집기에서 파일을 열고 표시된 표현을 검색하면 주변 흐름을 함께 읽을 수 있습니다. 직접 수정한 파일은 내용이나 줄 번호가 달라질 수 있습니다.</p>${renderCodeExcerpt(l.reading.code)}</article>`:""}</div><section class="api-contracts" id="api-contracts"><span class="eyebrow">API CONTRACT</span><h2>함수의 역할부터 호출 방법까지</h2>${(l.apis||[]).map(a=>`<article class="api-card"><h3><code>${escapeHTML(a.name)}</code></h3><dl><dt>하는 일</dt><dd>${escapeHTML(a.purpose)}</dd><dt>사용 순서·제약</dt><dd>${escapeHTML(a.usage)}</dd><dt>인자</dt><dd>${escapeHTML(a.args)}</dd><dt>소유권 / 수명</dt><dd>${escapeHTML(a.ownership)}</dd><dt>반환값</dt><dd>${escapeHTML(a.returns)}</dd><dt>실패 시</dt><dd>${escapeHTML(a.failure)}</dd><dt>이 예제에서의 역할</dt><dd>${escapeHTML(a.lab)}</dd></dl><nav class="api-practice-links" aria-label="관련 실습">${(a.practice_links||[]).map(link=>`<a href="${escapeHTML(link.href)}">${escapeHTML(link.title)} · ${escapeHTML(link.label)} →</a>`).join("")}</nav>${(a.examples||[]).map(renderCodeExcerpt).join("")}<a href="/static/reference.html#api/${encodeURIComponent(a.name.split("(")[0])}" target="_blank" rel="noopener">API 사전에서 찾아보기 ↗</a></article>`).join('')}</section>`;
 }
 function showLesson(index) {
   current = index;
   const l = lessons[index];
   history.replaceState(null, '', `#${l.id}`);
   $('module-name').textContent = modules[l.module-1];
-  $('lesson-content').innerHTML = `<div class="lesson-meta"><span class="eyebrow">MODULE 0${l.module} · LAB ${String(index+1).padStart(2,'0')}</span><span class="time">약 ${l.minutes}분</span></div><div id="lesson-completed" class="completed-badge" hidden>✓ 학습 완료</div><h1>${escapeHTML(l.title)}</h1><p class="intro">${escapeHTML(l.intro)}</p><div class="lesson-jumps"><button data-jump="lesson-terms">용어 설명</button><button data-jump="reading">개념 해설</button><button data-jump="api-contracts">API 계약</button><button data-jump="practice">실습</button><button data-jump="quiz-card">퀴즈</button></div>${l.id.startsWith('tls-') ? '<div class="flow"><span>ClientHello</span>→<span>키 교환 · 인증</span>→<span>암호화 통신</span></div>':''}${l.module === 3 ? '<div class="flow"><span>Application / libssl</span>→<span>EVP</span>→<span>Provider</span></div>':''}${renderTerms(l)}<section class="concept-card"><h3>알고 시작하기</h3><ul>${l.concepts.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul></section>${renderReading(l)}<div id="practice" class="practice-label"><span class="eyebrow">HANDS-ON · C++20 / OPENSSL 3.5.7</span><h2>직접 실행하고 바꿔보기</h2></div>${l.file?`<button class="open-example" id="open-example">↗ ${escapeHTML(l.file)} 편집기에서 열기</button><button id="open-header" class="header-button">공통 헤더 study.hpp</button>`:''}${l.steps.map((s,i)=>`<section class="step"><h3><span class="step-index">${i+1}</span>${escapeHTML(s.title)}</h3><p>${escapeHTML(s.text)}</p><div class="command"><div class="command-top"><span>BASH</span><button data-command="${i}">터미널에 입력 ↗</button></div><pre><code>${escapeHTML(s.command)}</code></pre></div><div class="expect"><b>EXPECTED</b><span>${escapeHTML(s.expect)}</span></div></section>`).join('')}<section class="challenge"><span class="eyebrow">TRY IT YOURSELF</span><p>${escapeHTML(l.challenge||'예상 결과와 실제 결과를 비교해 보세요.')}</p></section><section class="quiz-card" id="quiz-card"><div class="quiz"><span class="eyebrow">QUICK CHECK</span><h4>${escapeHTML(l.quiz.question)}</h4>${l.quiz.options.map((o,i)=>`<button class="quiz-option" data-answer="${i}">${String.fromCharCode(65+i)}. ${escapeHTML(o)}</button>`).join('')}<div id="quiz-feedback" class="quiz-feedback" role="status">${progress[l.id]?.quiz?'✓ 이전에 퀴즈를 통과했습니다.':''}</div></div></section><div class="lesson-footer"><button id="complete-lesson" aria-pressed="false">학습 완료로 표시</button><button id="previous" ${index===0?'disabled':''}>← 이전 레슨</button><button id="next" ${index===lessons.length-1?'disabled':''}>다음 레슨 →</button></div><details class="docs"><summary>공식 문서로 더 알아보기</summary>${l.docs.map(d=>`<a href="${escapeHTML(d)}" target="_blank" rel="noopener noreferrer">${escapeHTML(d.replace('https://',''))} ↗</a>`).join('')}</details>`;
+  $('lesson-content').innerHTML = `<div class="lesson-meta"><span class="eyebrow">MODULE 0${l.module} · LAB ${String(index+1).padStart(2,'0')}</span><span class="time">약 ${l.minutes}분</span></div><div id="lesson-completed" class="completed-badge" hidden>✓ 학습 완료</div><h1>${escapeHTML(l.title)}</h1><p class="intro">${escapeHTML(l.intro)}</p><div class="lesson-jumps"><button data-jump="lesson-terms">용어 설명</button><button data-jump="reading">개념 해설</button><button data-jump="api-contracts">API 계약</button><button data-jump="practice">실습</button><button data-jump="quiz-card">퀴즈</button></div>${l.id.startsWith('tls-') ? '<div class="flow"><span>ClientHello</span>→<span>키 교환 · 인증</span>→<span>암호화 통신</span></div>':''}${l.module === 3 ? '<div class="flow"><span>Application / libssl</span>→<span>EVP</span>→<span>Provider</span></div>':''}${renderReadingRoute(l)}${renderTerms(l)}<section class="concept-card"><h3>알고 시작하기</h3><ul>${l.concepts.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul></section>${renderReading(l)}<div id="practice" class="practice-label"><span class="eyebrow">HANDS-ON · C++20 / OPENSSL 3.5.7</span><h2>직접 실행하고 바꿔보기</h2></div>${l.file?`<button class="open-example" id="open-example">↗ ${escapeHTML(l.file)} 편집기에서 열기</button><button id="open-header" class="header-button">공통 헤더 study.hpp</button>`:''}${l.steps.map((s,i)=>`<section class="step" id="practice-step-${i+1}" tabindex="-1"><h3><span class="step-index">${i+1}</span>${escapeHTML(s.title)}</h3><p>${escapeHTML(s.text)}</p><div class="command"><div class="command-top"><span>BASH</span><button data-command="${i}">터미널에 입력 ↗</button></div><pre><code>${escapeHTML(s.command)}</code></pre></div><div class="expect"><b>EXPECTED</b><span>${escapeHTML(s.expect)}</span></div></section>`).join('')}<section class="challenge"><span class="eyebrow">TRY IT YOURSELF</span><p>${escapeHTML(l.challenge||'예상 결과와 실제 결과를 비교해 보세요.')}</p></section><section class="quiz-card" id="quiz-card"><div class="quiz"><span class="eyebrow">QUICK CHECK</span><h4>${escapeHTML(l.quiz.question)}</h4>${l.quiz.options.map((o,i)=>`<button class="quiz-option" data-answer="${i}">${String.fromCharCode(65+i)}. ${escapeHTML(o)}</button>`).join('')}<div id="quiz-feedback" class="quiz-feedback" role="status">${progress[l.id]?.quiz?'✓ 이전에 퀴즈를 통과했습니다.':''}</div></div></section><div class="lesson-footer"><button id="complete-lesson" aria-pressed="false">학습 완료로 표시</button><button id="previous" ${index===0?'disabled':''}>← 이전 레슨</button><button id="next" ${index===lessons.length-1?'disabled':''}>다음 레슨 →</button></div><details class="docs"><summary>공식 문서로 더 알아보기</summary>${l.docs.map(d=>`<a href="${escapeHTML(d)}" target="_blank" rel="noopener noreferrer">${escapeHTML(d.replace('https://',''))} ↗</a>`).join('')}</details>`;
   document.querySelectorAll('[data-command]').forEach(b => b.onclick = () => {
     if (!terminalReady()) return;
     switchTab('terminal'); term.paste(l.steps[Number(b.dataset.command)].command); term.focus();
     toast('명령을 확인한 뒤 터미널에서 Enter를 누르세요.');
 
   });
+  $('lesson-content').querySelectorAll('[data-source-file]').forEach(b => b.onclick=()=>openFile(b.dataset.sourceFile).catch(e=>toast(e.message)));
   if (l.file) { $('open-example').onclick = () => openFile(l.file).catch(e=>toast(e.message)); $('open-header').onclick = () => openFile('examples/cpp/study.hpp').catch(e=>toast(e.message)); }
   document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>scrollLessonTo($(b.dataset.jump)));
   function updateCompletion() {
@@ -149,9 +161,23 @@ $('course-close').onclick=()=>{closeCourse();$('course-toggle').focus();};
 $('course-panel').addEventListener('close',()=>$('course-toggle').setAttribute('aria-expanded','false'));
 $('lab-jump').onclick=()=>{setPane('lab');$('lab-pane').focus({preventScroll:true});};
 $('terminal-tab').onclick=()=>switchTab('terminal');$('editor-tab').onclick=()=>switchTab('editor');$('reconnect').onclick=connect;
+function navigateLessonAnchor() {
+  const [id, section, number] = location.hash.slice(1).split('/');
+  const index = lessons.findIndex(l => l.id === id);
+  showLesson(index < 0 ? 0 : index);
+  if (index >= 0 && section === 'step' && /^[1-9][0-9]*$/.test(number || '')) {
+    const target = $(`practice-step-${number}`);
+    if (target) {
+      history.replaceState(null, '', `#${id}/step/${number}`);
+      setPane('lesson');
+      requestAnimationFrame(() => { scrollLessonTo(target); target.focus({preventScroll:true}); });
+    }
+  }
+}
+window.addEventListener('hashchange', () => { if (lessons.length) navigateLessonAnchor(); });
 async function init(){
   try{const data=await api('/api/info');lessons=data.lessons;$('version').textContent=data.openssl;
-    const index=lessons.findIndex(l=>`#${l.id}`===location.hash);showLesson(index<0?0:index);connect();
+    navigateLessonAnchor();connect();
   }catch(e){$('lesson-content').textContent=`환경을 불러오지 못했습니다: ${e.message}. 페이지를 새로고침해 주세요.`;}
 }
 init();

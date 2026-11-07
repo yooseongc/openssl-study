@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OpenSSL Study · 흐름 지도와 API 사전</title>
+  <link rel="icon" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="/static/flow-data.js"></script>
+  <script defer src="/static/reference.js"></script>
+</head>
+<body class="reference-shell">
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="/"><span class="brand-icon">⌘</span><span>OpenSSL Study<span class="brand-sub">VISUAL REFERENCE / 3.5.7</span></span></a>
+    <nav class="header-actions" aria-label="페이지"><a href="#flows" id="flow-tab">흐름 지도</a><a href="#api" id="api-tab">API 사전</a><a href="/">교재·실습 ↗</a></nav>
+  </div></header>
+  <main class="reference-main">
+    <section id="flow-view" aria-labelledby="flow-title">
+      <div class="reference-heading"><span class="eyebrow">SEE THE CONNECTIONS</span><h1 id="flow-title">암호 통신의 흐름 지도</h1><p>입력은 무엇이고, 무엇을 보내며, 무엇을 검증할까요? 주제를 고른 뒤 단계를 눌러 흐름을 따라가세요.</p></div>
+      <nav id="flow-topics" class="reference-topics" aria-label="흐름 주제"></nav>
+      <article id="flow-content"></article>
+    </section>
+    <section id="api-view" aria-labelledby="api-title" hidden>
+      <div class="reference-heading"><span class="eyebrow">LOOK UP THE CONTRACT</span><h1 id="api-title">OpenSSL API 사전</h1><p>교재에서 다루는 API의 학습용 색인입니다. OpenSSL 전체 API를 망라하지 않으며, 세부 조건은 연결된 공식 문서와 함께 확인하세요.</p></div>
+      <div class="reference-search"><label for="api-search">이름·역할·인자 검색<input id="api-search" type="search" placeholder="예: EVP_DigestUpdate, 소유권, ALPN"></label><label for="api-family">분야<select id="api-family"><option value="">전체 분야</option><option>EVP</option><option>SSL / QUIC</option><option>X509 / 인증서</option><option>BIO</option><option>기타</option></select></label></div>
+      <p id="api-status" role="status" aria-live="polite">사전을 불러오는 중입니다…</p>
+      <div id="api-results"></div>
+    </section>
+    <noscript>이 페이지의 단계 선택과 사전 검색에는 JavaScript가 필요합니다. <a href="/">교재로 돌아가기</a></noscript>
+  </main>
+</body>
+</html>

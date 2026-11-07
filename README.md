@@ -155,3 +155,11 @@ docker compose exec -T study python /opt/scripts/web_test.py
 이 예제는 study/1 echo 프로토콜이며 HTTP/3 구현이 아닙니다. multi는 스트림을 순서대로 교환하고, epoll 모드는 클라이언트 I/O만 비동기입니다. 종료는 blocking rapid shutdown으로 단순화했습니다. 연결 이동·0-RTT·손실 주입·부하 테스트는 포함하지 않습니다. 일반적인 API 계약과 실습의 제한을 레슨에 구분해 설명합니다.
 
 `docker compose exec -T study python /opt/scripts/quic_test.py`는 임시 작업 공간에서 컴파일, 정상 echo, 세 스트림 ID, epoll, 두 가지 거부 경로를 검증합니다. 기존 학생 파일은 수정하지 않습니다.
+
+## 흐름 지도와 API 사전
+
+상단의 **흐름 지도·API 사전**에서 별도 시각 학습 페이지를 엽니다. 전체 연결 지도, HMAC, 서명, ECDH/HKDF, AEAD, TLS 1.3, 인증서 신뢰 경로, QUIC의 8개 흐름을 단계별 설명·비교표로 확인합니다. 각 단계는 관련 API 검색과 교재로 연결됩니다.
+
+API 사전은 기존 교재 데이터를 읽어 이름·기능·인자와 분야로 검색합니다. 일반 계약이 동일한 항목만 합치고 설명이 다른 항목은 유지합니다. OpenSSL 전체 API를 망라하는 사전은 아닙니다. 학습 완료 기록을 변경하지 않습니다.
+
+교재는 각 레슨의 배경·핵심 질문·관찰 목표를 제시하고 흐름 지도와 API 사전으로 연결합니다. 코드 설명과 API 카드의 발췌는 배포 예제에서 생성되며 파일·행·검색할 표현을 표시합니다. 직접 수정한 IDE 파일과는 달라질 수 있습니다. `python /opt/scripts/teaching_test.py`로 설명의 코드 위치가 실제 배포 소스와 일치하는지 검사합니다.
