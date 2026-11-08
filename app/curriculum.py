@@ -172,5 +172,13 @@ connect_concepts(LESSONS)
 from quic_lessons import LESSONS as QUIC_LESSONS
 LESSONS.extend(QUIC_LESSONS)
 
+# Authoritative narrative: replace legacy section text rather than append summaries.
+_text = json.loads(Path(__file__).with_name('lesson_text.json').read_text(encoding='utf8'))
+if set(_text) != {lesson['id'] for lesson in LESSONS}:
+    raise ValueError('lesson_text.json must cover every lesson exactly')
+for _lesson in LESSONS:
+    _lesson.update(_text[_lesson['id']])
+    _lesson.pop('concepts', None)
+
 from reading_routes import enrich as connect_reading
 connect_reading(LESSONS)

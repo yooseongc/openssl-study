@@ -6,7 +6,7 @@ RUN npm install --save-exact @xterm/xterm@5.5.0 @xterm/addon-fit@0.10.0
 
 FROM python:3.13-slim-trixie
 ARG OPENSSL_DEB_VERSION=3.5.7-1~deb13u3
-RUN apt-get update && apt-get install -y --no-install-recommends openssl=${OPENSSL_DEB_VERSION} libssl-dev=${OPENSSL_DEB_VERSION} libssl3t64=${OPENSSL_DEB_VERSION} gcc g++ libboost-system-dev libc6-dev make curl procps ca-certificates clangd clang-format gdb less \
+RUN apt-get update && apt-get install -y --no-install-recommends openssl=${OPENSSL_DEB_VERSION} libssl-dev=${OPENSSL_DEB_VERSION} libssl3t64=${OPENSSL_DEB_VERSION} gcc g++ libboost-system-dev libc6-dev make curl procps ca-certificates clangd clang-format gdb less vim \
     && rm -rf /var/lib/apt/lists/*
 RUN openssl version | grep -E '^OpenSSL 3\.5\.7 '
 RUN pip install --no-cache-dir aiohttp==3.12.15

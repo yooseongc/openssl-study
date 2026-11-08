@@ -7,7 +7,9 @@ from curriculum import LESSONS
 total = 0
 for lesson in LESSONS:
     r = lesson['reading']
-    assert all(r[k] for k in ('before', 'question', 'observe', 'flow'))
+    assert r['flow']
+    assert lesson['intro'] and len(lesson['sections']) >= 3
+    assert all(len(s['paragraphs']) >= 2 for s in lesson['sections'])
     excerpts = [r['code']] if 'code' in r else []
     excerpts.extend(s['code'] for s in lesson.get('sections', []) if 'code' in s)
     for api in lesson.get('apis', []):
