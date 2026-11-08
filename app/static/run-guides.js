@@ -1,4 +1,36 @@
 const exampleGuides = {
+
+  "examples/cpp/qat_probe.cpp": {
+    "desc": "Provider 로딩·필수 조건 선택·AES-GCM 결과를 확인합니다. 실제 HW 실행 여부는 별도 확인이 필요합니다.",
+    "choices": [
+      [
+        "default",
+        "default 결과 검사: exit=0"
+      ],
+      [
+        "missing",
+        "없는 Provider: exit=77"
+      ],
+      [
+        "qatprovider",
+        "QAT 가용성: 미설치 시 exit=77"
+      ]
+    ]
+  },
+  "examples/cpp/async_pause.cpp": {
+    "desc": "장치 없이 실제 ASYNC API의 중단·재개를 실험합니다. QAT 가속이나 완료 이벤트 대기는 수행하지 않습니다.",
+    "choices": [
+      [
+        "ok",
+        "FINISH + 작업 결과 42: exit=0"
+      ],
+      [
+        "fail",
+        "FINISH + 작업 결과 -1: exit=2"
+      ]
+    ]
+  }
+,
   "examples/cpp/quic_local.cpp": {
   "desc": "로컬 서버를 자동 실행·정리합니다. ~/lab에서 실행하며 tls 인증서를 사용합니다. HTTP/3가 아닌 study/1 echo 프로토콜입니다.",
   "choices": [

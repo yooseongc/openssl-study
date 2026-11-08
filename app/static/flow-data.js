@@ -24,3 +24,84 @@ const flowTopics = [
   {id:'quic',title:'QUIC 연결과 스트림',intro:'같은 SSL* 타입을 사용하는 세 객체의 역할과 이벤트 처리를 구분합니다.',scope:'OpenSSL 3.5.7 내장 QUIC의 명시적 스트림 사용 모델입니다. HTTP/3 계층은 포함하지 않습니다.',lesson:'quic-events',docs:['https://docs.openssl.org/3.5/man7/openssl-quic/','https://docs.openssl.org/3.5/man3/SSL_handle_events/'],
    steps:[['Listener 준비','서버 로컬','UDP fd + context → listener','한 수신 지점에서 새 연결을 받습니다. TCP accept처럼 연결마다 별도 TCP fd가 생기는 모델과 구분합니다.','SSL_new_listener'],['연결과 인증','클라이언트 ↔ 서버','TLS 1.3 핸드셰이크 + QUIC 전송','TLS 메시지는 CRYPTO 프레임으로 전달되고 QUIC이 패킷을 보호합니다. TLS 레코드를 UDP에 그대로 넣는 것이 아닙니다.','SSL_accept_connection'],['스트림 생성','한 연결 안','connection → stream 0,4,8…','클라이언트 시작 양방향 스트림 ID의 예입니다. 각 스트림의 바이트 순서는 보장되지만 서로 다른 스트림 사이 전역 순서는 보장되지 않습니다.','SSL_new_stream'],['데이터와 이벤트','readiness / 타이머 → 처리','stream I/O + connection 이벤트 처리','재시도 요구와 UDP 준비 상태는 동일하지 않습니다. 다음 내부 타이머도 고려하여 SSL_handle_events를 호출해야 합니다.','SSL_handle_events'],['송신 종료와 연결 종료','범위를 구분','stream FIN ≠ connection close','FIN은 한 스트림의 한 방향을 끝냅니다. 연결 종료 완료와 SSL_free도 서로 다른 사건입니다.','SSL_stream_conclude']],columns:['객체 / 계층','담당','주요 API'],rows:[['listener','연결 수락','SSL_accept_connection'],['connection','UDP 전송·핸드셰이크·타이머','SSL_connect / SSL_handle_events'],['stream','개별 바이트 흐름','SSL_read_ex / SSL_write_ex'],['HTTP/3','요청·응답·QPACK','OpenSSL 내장 QUIC만으로 제공되지 않음']]}
 ];
+
+flowTopics.push({
+  "id": "qat",
+  "title": "QAT: 선택·제출·완료",
+  "intro": "Provider 선택과 실제 가속 경로, 작업 완료와 연산 성공을 나누어 봅니다.",
+  "scope": "개념 흐름입니다. 현재 컨테이너의 ASYNC 예제에는 장치나 완료 fd가 없으며, 특정 QAT 버전의 이벤트 처리 구현을 재현하지 않습니다.",
+  "lesson": "qat-provider",
+  "docs": [
+    "https://github.com/intel/QAT_Engine",
+    "https://docs.openssl.org/3.5/man3/ASYNC_start_job/"
+  ],
+  "steps": [
+    [
+      "Provider 로드",
+      "프로세스 초기화",
+      "모듈 + 의존 라이브러리 → 핸들",
+      "로드 성공은 모든 알고리즘의 지원이나 하드웨어 실행을 보장하지 않습니다.",
+      "OSSL_PROVIDER_load"
+    ],
+    [
+      "구현 선택",
+      "EVP fetch",
+      "알고리즘 + 필수 속성 → 구현",
+      "get0_provider로 선택 결과를 확인합니다. Provider 내부 HW/SW/fallback 경로는 별도 계측이 필요합니다.",
+      "EVP_CIPHER_fetch"
+    ],
+    [
+      "연산 제출",
+      "구현 내부",
+      "입력·키 → 작업",
+      "동기 경로는 호출 안에서 기다릴 수 있습니다. 비동기 경로는 작업을 중단하고 호출자에게 제어를 돌려줄 수 있습니다.",
+      "ASYNC_start_job"
+    ],
+    [
+      "완료 조건 대기",
+      "이벤트 루프",
+      "완료 통지 또는 polling → 재개 가능",
+      "소켓의 읽기·쓰기 준비와 가속 연산의 완료는 다릅니다. 실제 대기 방식은 해당 구현·버전의 규칙을 따릅니다.",
+      "ASYNC_pause_job"
+    ],
+    [
+      "재개와 결과 검사",
+      "원래 스레드",
+      "FINISH + 연산 결과 → 사용 또는 오류",
+      "FINISH만으로 성공 처리하지 않고 연산의 반환값과 결과를 검사합니다.",
+      "ASYNC_start_job"
+    ]
+  ],
+  "columns": [
+    "관찰",
+    "알 수 있는 것",
+    "추가로 확인할 것"
+  ],
+  "rows": [
+    [
+      "Provider 로드",
+      "모듈 초기화 성공",
+      "원하는 구현 선택"
+    ],
+    [
+      "selected=qatprovider",
+      "선택한 공급자",
+      "내부 HW/SW/fallback"
+    ],
+    [
+      "known-answer 통과",
+      "시험 입력 결과 일치",
+      "다른 입력·실패 경로·성능"
+    ],
+    [
+      "ASYNC_FINISH",
+      "작업 함수 반환",
+      "작업 자체의 반환값"
+    ],
+    [
+      "speed 처리량",
+      "해당 부하의 암호 연산 처리량",
+      "TLS 전체 지연·CPU 비용"
+    ]
+  ]
+});

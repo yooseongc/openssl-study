@@ -29,6 +29,7 @@ function showStep(index) {
 }
 
 function family(name) {
+  if (/ASYNC/.test(name)) return 'ASYNC';
   if (/SSL|QUIC/.test(name)) return 'SSL / QUIC';
   if (/EVP/.test(name)) return 'EVP';
   if (/X509|PEM/.test(name)) return 'X509 / 인증서';

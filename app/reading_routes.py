@@ -38,6 +38,13 @@ ROUTES = {'basic-bytes': ('overview', 'const std::array<unsigned char, 3> bytes'
  'quic-events': ('quic', 'void wait_events(')}
 
 
+ROUTES.update({
+    'qat-basics': ('qat', None),
+    'qat-provider': ('qat', 'const std::string properties'),
+    'qat-async': ('qat', 'int state = ASYNC_start_job'),
+    'qat-performance': ('qat', None),
+})
+
 def enrich(lessons):
     source_root = Path('/opt/examples')
     if not source_root.exists():
@@ -58,6 +65,8 @@ def enrich(lessons):
 
     by_id = {lesson['id']: lesson for lesson in lessons}
     cli_targets = {
+        'qat-basics': [('qat-provider', 0), ('qat-provider', 2)],
+        'qat-performance': [('qat-provider', 0), ('qat-performance', 0)],
         'tls-1': [('code-3', 0)],
         'tls-2': [('code-3', 0), ('code-nonblock', 0)],
         'tls-3': [('code-3', 1)],
@@ -93,7 +102,7 @@ def enrich(lessons):
                 href=f'/#{id}/step/{index+1}') for id, index in targets]
             # Only link calls that are actually present; grouped and conceptual APIs
             # are never presented as a single C function prototype.
-            symbols = re.findall(r'\b(?:EVP|SSL|OSSL|RAND|BIO|X509|PEM|ERR|CRYPTO|TLS|OpenSSL)_[A-Za-z0-9_]+', api['name'])
+            symbols = re.findall(r'\b(?:EVP|SSL|OSSL|RAND|BIO|X509|PEM|ERR|CRYPTO|TLS|OpenSSL|ASYNC)_[A-Za-z0-9_]+', api['name'])
             if 'native_handle' in api['name']:
                 symbols = ['native_handle']
             elif api['name'].startswith('async_handshake'):

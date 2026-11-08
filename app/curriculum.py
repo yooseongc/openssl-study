@@ -171,6 +171,7 @@ connect_concepts(LESSONS)
 
 from quic_lessons import LESSONS as QUIC_LESSONS
 LESSONS.extend(QUIC_LESSONS)
+LESSONS.extend(json.loads(Path(__file__).with_name('qat_lessons.json').read_text(encoding='utf8')))
 
 # Authoritative narrative: replace legacy section text rather than append summaries.
 _text = json.loads(Path(__file__).with_name('lesson_text.json').read_text(encoding='utf8'))

@@ -44,3 +44,8 @@ COMMANDS['quic-connection'] = COMMANDS['quic-basics']
 COMMANDS['quic-streams'] = "timeout 12 ./examples/cpp/quic_local multi | grep 'stream=8'"
 COMMANDS['quic-events'] = "timeout 12 ./examples/cpp/quic_local epoll | grep 'PASS epoll'"
 COMMANDS['quic-failures'] = "python /opt/scripts/quic_test.py --existing"
+
+COMMANDS['qat-basics'] = "openssl list -providers | grep default"
+COMMANDS['qat-provider'] = "./examples/cpp/qat_probe default | grep 'PASS known-answer'"
+COMMANDS['qat-async'] = "./examples/cpp/async_pause ok | grep 'operation_result=42'"
+COMMANDS['qat-performance'] = "openssl speed -provider default -propquery provider=default -elapsed -seconds 1 -bytes 64 -aead -evp aes-128-gcm"

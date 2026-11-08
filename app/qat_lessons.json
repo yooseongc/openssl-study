@@ -1,0 +1,284 @@
+[
+  {
+    "id": "qat-basics",
+    "module": 6,
+    "title": "QAT는 TLS의 어느 부분을 가속하는가?",
+    "minutes": 30,
+    "steps": [
+      {
+        "title": "현재 실행 환경 읽기",
+        "text": "명령의 버전, 모듈 위치, 현재 로드된 Provider와 CPU를 차례로 봅니다.",
+        "command": "cd ~/lab\nopenssl version\nopenssl version -m\nopenssl list -providers\npython -c \"from pathlib import Path; print(Path('/proc/cpuinfo').read_text().split('\\n\\n')[0])\"",
+        "expect": "OpenSSL 3.5.7과 현재 Provider·CPU 정보. aes 플래그는 QAT 장치 존재의 증거가 아닙니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "OSSL_PROVIDER_load(libctx, name)",
+        "purpose": "지정한 컨텍스트에 Provider를 로드하고 사용할 참조를 얻습니다.",
+        "usage": "모듈 검색·의존 라이브러리·초기화가 성공해야 핸들을 얻습니다. 이후 원하는 연산을 fetch하여 실제 구현 선택도 확인합니다.",
+        "args": "libctx는 라이브러리 컨텍스트이며 nullptr이면 기본 컨텍스트입니다. name은 로드할 Provider 이름입니다.",
+        "ownership": "성공한 참조는 OSSL_PROVIDER_unload로 해제합니다. 사용 중인 알고리즘과 관련 객체를 먼저 정리합니다.",
+        "returns": "성공 시 OSSL_PROVIDER*, 실패 시 nullptr입니다.",
+        "failure": "오류 큐에서 모듈을 못 찾은 것인지 의존성·초기화 실패인지 확인합니다. nullptr만으로 물리 장치 부재를 단정하지 않습니다.",
+        "lab": "다음 Provider 선택 실습의 qat_probe.cpp가 default와 qatprovider를 같은 방식으로 요청합니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "QAT_HW",
+        "meaning": "장치에 연산을 제출하는 QAT 하드웨어 경로."
+      },
+      {
+        "name": "QAT_SW",
+        "meaning": "지원 CPU 명령어와 최적화 라이브러리를 이용하는 소프트웨어 경로."
+      },
+      {
+        "name": "오프로딩",
+        "meaning": "계산을 별도 처리 장치에 맡기고 결과를 회수하는 방식."
+      }
+    ],
+    "quiz": {
+      "question": "default Provider가 표시되면 CPU 명령어 가속도 사용하지 않는다는 뜻인가요?",
+      "options": [
+        "아니요. default 구현도 CPU 명령어 최적화를 사용할 수 있습니다.",
+        "네. default는 항상 최적화 없는 구현입니다."
+      ],
+      "answer": 0,
+      "explanation": "Provider 이름과 그 내부의 CPU 명령어 사용은 다른 수준의 정보입니다."
+    },
+    "docs": [
+      "https://github.com/intel/QAT_Engine/blob/master/docs/software_requirements.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/openssl_config.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_hw.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_sw.md",
+      "https://docs.openssl.org/3.5/man7/provider/",
+      "https://docs.openssl.org/3.5/man3/ASYNC_start_job/",
+      "https://docs.openssl.org/3.5/man1/openssl-speed/"
+    ],
+    "challenge": "바꾼 조건과 관찰한 출력, 그 출력만으로 판단할 수 있는 범위를 구분해 정리해 보세요."
+  },
+  {
+    "id": "qat-provider",
+    "module": 6,
+    "title": "로드 성공, 구현 선택, 연산 성공을 구분하기",
+    "minutes": 30,
+    "steps": [
+      {
+        "title": "default 구현으로 정확성 확인",
+        "text": "같은 EVP 호출을 CPU 환경에서 실행합니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/qat_probe.cpp default\necho \"exit=$?\"",
+        "expect": "selected=default, PASS known-answer, exit=0."
+      },
+      {
+        "title": "존재하지 않는 Provider의 실패",
+        "text": "장치와 무관하게 로딩 실패를 재현합니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/qat_probe.cpp missing\necho \"exit=$?\"",
+        "expect": "UNAVAILABLE provider=missing, exit=77. 성공이나 가속 결과가 아닙니다."
+      },
+      {
+        "title": "QAT Provider 가용성 확인",
+        "text": "설치된 환경이면 선택과 계산까지 진행하고, 사용할 수 없으면 이유를 출력합니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/qat_probe.cpp qatprovider\necho \"exit=$?\"",
+        "expect": "미설치 환경은 보통 UNAVAILABLE와 exit=77. 사용 가능하면 selected=qatprovider와 결과 검사; 실행 오류는 exit=1입니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "EVP_CIPHER_fetch(libctx, algorithm, properties)",
+        "purpose": "대칭 암호 알고리즘의 조건에 맞는 구현을 가져옵니다.",
+        "usage": "구현을 얻은 뒤 EVP_CIPHER_CTX를 만들고 Init/Update/Final로 연산합니다. 같은 이름의 여러 구현 중 속성 조건으로 선택할 수 있습니다.",
+        "args": "libctx는 검색 범위, algorithm은 AES-128-GCM 같은 이름, properties는 조건 문자열입니다. nullptr이면 추가 조건을 지정하지 않습니다.",
+        "ownership": "반환된 EVP_CIPHER 참조는 EVP_CIPHER_free로 해제합니다. 연산 상태 EVP_CIPHER_CTX와는 별도 객체입니다.",
+        "returns": "성공 시 EVP_CIPHER*, 조건을 만족하지 못하거나 오류이면 nullptr.",
+        "failure": "실패한 구현으로 Init을 진행하지 않습니다. 알고리즘 이름, 로드된 Provider와 속성 조건을 확인합니다.",
+        "lab": "properties를 provider=default 또는 provider=qatprovider로 구성하고 fetch 실패 단계를 분리합니다."
+      },
+      {
+        "name": "EVP_CIPHER_get0_provider(cipher)",
+        "purpose": "선택된 cipher 구현을 공급한 Provider를 조회합니다.",
+        "usage": "fetch로 얻은 구현의 출처를 확인할 때 사용합니다. 공급자 이름은 내부 장치 경로나 오프로딩 성공 횟수를 대신하지 않습니다.",
+        "args": "cipher는 조회할 EVP_CIPHER 객체입니다.",
+        "ownership": "반환된 const OSSL_PROVIDER*는 빌린 포인터입니다. 별도 unload하지 않습니다.",
+        "returns": "Provider 포인터이며 Provider에 연결되지 않은 구현에서는 nullptr일 수 있습니다.",
+        "failure": "nullptr을 확인한 뒤 이름을 조회합니다. 출처 정보가 없다는 사실과 계산 실패를 혼동하지 않습니다.",
+        "lab": "selected 포인터로 이름을 출력하고 그 뒤 known-answer 계산을 실행합니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "property query",
+        "meaning": "알고리즘 구현 선택에 적용하는 속성 조건."
+      },
+      {
+        "name": "fallback",
+        "meaning": "원하는 경로를 쓸 수 없을 때 다른 구현으로 처리하는 정책."
+      },
+      {
+        "name": "known-answer test",
+        "meaning": "고정된 입력과 예상 결과를 비교하는 정확성 검사."
+      }
+    ],
+    "quiz": {
+      "question": "selected=qatprovider만으로 하드웨어 실행이 입증되나요?",
+      "options": [
+        "아니요. Provider 내부 처리 경로를 따로 확인해야 합니다.",
+        "네. 이름이 QAT이면 모두 장치에서 계산합니다."
+      ],
+      "answer": 0,
+      "explanation": "Provider의 선택과 그 내부의 HW/SW/fallback 경로는 구분해야 합니다."
+    },
+    "docs": [
+      "https://github.com/intel/QAT_Engine/blob/master/docs/software_requirements.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/openssl_config.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_hw.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_sw.md",
+      "https://docs.openssl.org/3.5/man7/provider/",
+      "https://docs.openssl.org/3.5/man3/ASYNC_start_job/",
+      "https://docs.openssl.org/3.5/man1/openssl-speed/"
+    ],
+    "challenge": "바꾼 조건과 관찰한 출력, 그 출력만으로 판단할 수 있는 범위를 구분해 정리해 보세요.",
+    "file": "examples/cpp/qat_probe.cpp"
+  },
+  {
+    "id": "qat-async",
+    "module": 6,
+    "title": "암호 연산을 기다리는 동안: ASYNC의 중단과 재개",
+    "minutes": 30,
+    "steps": [
+      {
+        "title": "일시 중단 후 재개",
+        "text": "출력 순서에서 job과 호출자 사이 제어 이동을 읽습니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/async_pause.cpp ok\necho \"exit=$?\"",
+        "expect": "before pause → caller PAUSE → resumed → FINISH, operation_result=42, exit=0."
+      },
+      {
+        "title": "완료했지만 작업은 실패한 경우",
+        "text": "같은 중단·재개 뒤 작업 함수의 결과만 바꿉니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/async_pause.cpp fail\necho \"exit=$?\"",
+        "expect": "FINISH가 나와도 operation_result=-1이고 exit=2. 암호 가속 성능 실험은 아닙니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "ASYNC_start_job(job, ctx, ret, func, args, size)",
+        "purpose": "새 작업을 시작하거나 중단된 작업을 재개합니다.",
+        "usage": "처음 *job은 nullptr입니다. PAUSE 뒤에는 같은 핸들을 같은 스레드에서 다시 넘깁니다. 재개 시 func·args·size는 다시 시작용으로 사용되지 않습니다.",
+        "args": "job은 ASYNC_JOB** 입출력, ctx는 대기 컨텍스트, ret은 작업 함수 결과를 받을 int*, func는 int(void*) 함수입니다. args의 size바이트를 새 작업에 복사합니다.",
+        "ownership": "job은 풀에서 관리하므로 직접 free하지 않습니다. 복사된 구조체의 포인터 대상은 호출자가 수명을 유지합니다. 모든 작업 완료 뒤 wait context와 스레드 풀을 정리합니다.",
+        "returns": "ASYNC_FINISH / PAUSE / NO_JOBS / ERR. 작업 함수의 반환값은 FINISH에서 *ret로 확인합니다.",
+        "failure": "ERR는 오류 큐를 확인하고 NO_JOBS는 풀 가용성을 고려합니다. 미완료 작업을 방치한 채 입력 메모리를 해제하지 않습니다.",
+        "lab": "operation_result와 state를 따로 출력하여 FINISH와 작업 성공의 차이를 확인합니다."
+      },
+      {
+        "name": "ASYNC_pause_job()",
+        "purpose": "현재 ASYNC 작업 실행을 중단하고 호출자에게 제어를 돌려줍니다.",
+        "usage": "활성 작업 함수 안에서 호출합니다. 호출자는 ASYNC_PAUSE를 받고 같은 job을 재개하면 중단 호출 다음 위치로 실행이 이어집니다.",
+        "args": "인자는 없습니다. 현재 스레드에서 실행 중인 ASYNC 작업의 문맥을 사용합니다.",
+        "ownership": "스택 실행 상태를 유지하는 동작이며 입력 객체의 소유권을 넘기거나 해제하지 않습니다.",
+        "returns": "재개된 작업 쪽에서 성공 1, 오류 0을 받습니다. 호출자가 받는 ASYNC_PAUSE와 다른 반환값입니다.",
+        "failure": "반환값 0을 검사하고 작업 결과로 전달합니다. C++ 예외를 작업과 호출자 스택 경계 밖으로 흘려보내지 않습니다.",
+        "lab": "operation 내부에서 반환값을 확인하고 실패이면 -1을 반환합니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "ASYNC_JOB",
+        "meaning": "중단·재개할 함수의 실행 상태를 OpenSSL이 관리하는 객체."
+      },
+      {
+        "name": "작업 풀",
+        "meaning": "반복 할당을 줄이기 위해 작업 객체를 보관하는 스레드별 자원."
+      },
+      {
+        "name": "polling",
+        "meaning": "완료 여부를 주기적으로 조회하는 처리 방식. 완료 fd 대기와 비용이 다를 수 있습니다."
+      }
+    ],
+    "quiz": {
+      "question": "ASYNC_FINISH인데 작업 결과가 -1이면 성공인가요?",
+      "options": [
+        "아니요. 프레임워크 완료와 작업 결과를 각각 판정합니다.",
+        "네. FINISH만 확인하면 됩니다."
+      ],
+      "answer": 0,
+      "explanation": "FINISH는 함수가 반환했음을 의미합니다. 연산 성공은 그 함수가 정한 반환값으로 판정합니다."
+    },
+    "docs": [
+      "https://github.com/intel/QAT_Engine/blob/master/docs/software_requirements.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/openssl_config.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_hw.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_sw.md",
+      "https://docs.openssl.org/3.5/man7/provider/",
+      "https://docs.openssl.org/3.5/man3/ASYNC_start_job/",
+      "https://docs.openssl.org/3.5/man1/openssl-speed/"
+    ],
+    "challenge": "바꾼 조건과 관찰한 출력, 그 출력만으로 판단할 수 있는 범위를 구분해 정리해 보세요.",
+    "file": "examples/cpp/async_pause.cpp"
+  },
+  {
+    "id": "qat-performance",
+    "module": 6,
+    "title": "빠르다는 것을 무엇으로 확인할까?",
+    "minutes": 30,
+    "steps": [
+      {
+        "title": "작은 입력의 default 기준선",
+        "text": "가속 효과가 아니라 현재 CPU 환경의 한 조건을 측정합니다.",
+        "command": "cd ~/lab\nopenssl speed -provider default -propquery provider=default -elapsed -seconds 2 -bytes 64 -aead -evp aes-128-gcm",
+        "expect": "64바이트 조건의 처리량 표. 절대 수치는 환경에 따라 달라집니다."
+      },
+      {
+        "title": "큰 입력과 비교",
+        "text": "Provider는 유지하고 입력 크기만 바꿉니다.",
+        "command": "cd ~/lab\nopenssl speed -provider default -propquery provider=default -elapsed -seconds 2 -bytes 16384 -aead -evp aes-128-gcm",
+        "expect": "16384바이트 조건의 처리량 표. QAT 실행이나 TLS 전체 성능 결과는 아닙니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "EVP_CIPHER_get0_provider(cipher)",
+        "purpose": "벤치마크 전에 선택한 구현의 공급자를 확인할 수 있게 합니다.",
+        "usage": "알고리즘의 이름만 같아도 구현이 다를 수 있으므로 비교 조건을 기록합니다. 이 조회는 연산 횟수나 장치 사용률을 반환하지 않습니다.",
+        "args": "cipher는 fetch한 구현 객체입니다.",
+        "ownership": "Provider 포인터는 빌린 값이며 cipher 사용 동안 유지합니다.",
+        "returns": "공급자 포인터 또는 nullptr.",
+        "failure": "출처를 조회하지 못하면 이름을 역참조하지 않습니다.",
+        "lab": "qat_probe의 selected 출력으로 비교할 구현을 먼저 확인하고 speed 조건과 맞춥니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "처리량",
+        "meaning": "단위 시간에 처리한 데이터 또는 연산 수."
+      },
+      {
+        "name": "지연 시간",
+        "meaning": "요청 하나의 시작부터 완료까지 걸린 시간."
+      },
+      {
+        "name": "배치 처리",
+        "meaning": "여러 독립 연산을 모아 함께 처리하는 방식."
+      }
+    ],
+    "quiz": {
+      "question": "64바이트보다 16384바이트 결과가 높으면 QAT 효과인가요?",
+      "options": [
+        "아니요. 이 실습은 같은 default Provider에서 입력 크기만 바꿨습니다.",
+        "네. 큰 입력은 자동으로 QAT를 사용합니다."
+      ],
+      "answer": 0,
+      "explanation": "바꾼 변수가 입력 크기이므로 그 조건 차이를 관찰한 것입니다. QAT 가속 여부는 별도 증거가 필요합니다."
+    },
+    "docs": [
+      "https://github.com/intel/QAT_Engine/blob/master/docs/software_requirements.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/openssl_config.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_hw.md",
+      "https://github.com/intel/QAT_Engine/blob/master/docs/qat_sw.md",
+      "https://docs.openssl.org/3.5/man7/provider/",
+      "https://docs.openssl.org/3.5/man3/ASYNC_start_job/",
+      "https://docs.openssl.org/3.5/man1/openssl-speed/"
+    ],
+    "challenge": "바꾼 조건과 관찰한 출력, 그 출력만으로 판단할 수 있는 범위를 구분해 정리해 보세요."
+  }
+]
