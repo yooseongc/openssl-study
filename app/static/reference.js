@@ -29,6 +29,7 @@ function showStep(index) {
 }
 
 function family(name) {
+  if (/OCSP/.test(name)) return 'OCSP / 폐기 검증';
   if (/ASYNC/.test(name)) return 'ASYNC';
   if (/SSL|QUIC/.test(name)) return 'SSL / QUIC';
   if (/EVP/.test(name)) return 'EVP';

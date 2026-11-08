@@ -45,6 +45,14 @@ ROUTES.update({
     'qat-performance': ('qat', None),
 })
 
+ROUTES.update({
+    'revocation-basics': ('revocation', None),
+    'revocation-crl': ('revocation', 'X509_STORE_set_flags('),
+    'revocation-ocsp': ('revocation', 'revocation::verify_ocsp('),
+    'revocation-stapling': ('revocation', 'int check_staple('),
+    'revocation-api': ('revocation', 'revocation::verify_ocsp('),
+})
+
 def enrich(lessons):
     source_root = Path('/opt/examples')
     if not source_root.exists():
@@ -65,6 +73,7 @@ def enrich(lessons):
 
     by_id = {lesson['id']: lesson for lesson in lessons}
     cli_targets = {
+        'revocation-basics': [('revocation-crl', 2)],
         'qat-basics': [('qat-provider', 0), ('qat-provider', 2)],
         'qat-performance': [('qat-provider', 0), ('qat-performance', 0)],
         'tls-1': [('code-3', 0)],
@@ -92,7 +101,7 @@ def enrich(lessons):
             for section in lesson.get('sections', []):
                 anchor = section.get('code_anchor')
                 if anchor:
-                    section['code'] = excerpt(file, anchor)
+                    section['code'] = excerpt(section.get('code_file', file), anchor)
         for api in lesson.get('apis', []):
             targets = reference_targets.get((lesson['id'], api['name']),
                 cli_targets.get(lesson['id'], [(lesson['id'], 1 if lesson['id'] in {'basic-kex', 'quic-basics'} else 0)]))
@@ -102,7 +111,7 @@ def enrich(lessons):
                 href=f'/#{id}/step/{index+1}') for id, index in targets]
             # Only link calls that are actually present; grouped and conceptual APIs
             # are never presented as a single C function prototype.
-            symbols = re.findall(r'\b(?:EVP|SSL|OSSL|RAND|BIO|X509|PEM|ERR|CRYPTO|TLS|OpenSSL|ASYNC)_[A-Za-z0-9_]+', api['name'])
+            symbols = re.findall(r'\b(?:EVP|SSL|OSSL|RAND|BIO|X509|PEM|ERR|CRYPTO|TLS|OpenSSL|ASYNC|OCSP)_[A-Za-z0-9_]+', api['name'])
             if 'native_handle' in api['name']:
                 symbols = ['native_handle']
             elif api['name'].startswith('async_handshake'):
@@ -122,6 +131,13 @@ def enrich(lessons):
                 'SSL_get1_peer_certificate(ssl)': 'examples/cpp/tls_client.cpp',
                 'SSL_get_error(ssl, ret)': 'examples/cpp/tls_client.cpp',
             }
+            if not api['examples'] and lesson['id'].startswith('revocation-'):
+                for symbol in symbols:
+                    try:
+                        api['examples'].append(excerpt('examples/cpp/revocation.hpp', symbol+'('))
+                    except ValueError:
+                        continue
+                    break
             if not api['examples'] and api['name'] in related:
                 other_file = related[api['name']]
                 api['examples'].append(excerpt(other_file, symbols[0]+'('))

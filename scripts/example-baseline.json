@@ -94,5 +94,10 @@
   ],
   "cpp/quic_local.cpp": "daf631680078035235b45880dd05a94d251824cce6517ecf63147acbbe64c6e8",
   "cpp/qat_probe.cpp": "c28ea63ea2497c06c89c40e54fa2268637efea846ecf6aaedbf6c7295bc0e343",
-  "cpp/async_pause.cpp": "194050a93811e71ac9c47ffafa748f74b59deb7d4f7d317802ceb4d79f2e835f"
+  "cpp/async_pause.cpp": "194050a93811e71ac9c47ffafa748f74b59deb7d4f7d317802ceb4d79f2e835f",
+  "cpp/revocation.hpp": "ae3f3b648d5a206c0e40a4077c0e20f26f9b1d7854daceaf9ce3923b32638fe0",
+  "cpp/crl_verify.cpp": "800976bc33e77ace7500179d9c01ac2fdfa0a58c9f441e9723fb08a5d2d146c6",
+  "cpp/ocsp_verify.cpp": "4d2c4250462cffb1015f2bfce270e64f90b8a0945f8a3227cbc725f3c81eb941",
+  "cpp/ocsp_fixture.cpp": "f6cb1f36d39d1de6faa4abee8ff3613b2b4cad1c20dda29a059092de8383406c",
+  "cpp/staple_client.cpp": "32ccc52a049982b0f3d16b785a17a54f8294b427ad04df6778e69311c45fe2fe"
 }

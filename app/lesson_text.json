@@ -1198,5 +1198,187 @@
         ]
       }
     ]
+  },
+  "revocation-basics": {
+    "intro": "개인키 유출이나 잘못된 발급이 확인되면 만료일까지 인증서를 계속 신뢰해서는 안 됩니다. 인증기관은 그 인증서를 더 이상 사용하지 말라는 폐기 정보를 발행합니다. X.509 체인과 이름 검증을 배운 뒤 이 섹션을 읽으세요.",
+    "sections": [
+      {
+        "title": "만료와 폐기는 어떻게 다른가?",
+        "paragraphs": [
+          "만료는 인증서에 미리 적힌 Not After 시각이 지난 상태입니다. 폐기는 발급 후에 사용 중단 사유가 생겨 인증기관이 상태를 바꾼 것입니다. 폐기된 인증서 파일도 여전히 파싱할 수 있고 발급자의 서명도 수학적으로 맞을 수 있습니다. 파일 내용이 자동으로 수정되는 것은 아닙니다.",
+          "따라서 정상적인 체인·이름·유효기간 검사만으로 최신 폐기 상태까지 확인한 것은 아닙니다. 검증자는 별도로 받은 폐기 정보의 출처와 시각을 검사하고 대상 인증서에 적용해야 합니다. 이 실습은 같은 revoked.pem을 기본 검증에서는 통과시키고 CRL 검사에서는 거부하게 하여 차이를 보여 줍니다."
+        ]
+      },
+      {
+        "title": "CRL은 목록, OCSP는 상태 질의",
+        "paragraphs": [
+          "CRL(Certificate Revocation List)은 인증기관이 서명한 폐기 목록입니다. 검증자는 목록을 받아 해당 발급자의 인증서 일련번호가 있는지 확인합니다. OCSP(Online Certificate Status Protocol)는 특정 인증서의 상태를 질의하고 서명된 응답을 받는 프로토콜입니다.",
+          "CRL에 번호가 없거나 OCSP가 good을 반환했다는 사실도 그 정보가 올바른 발급자·대상을 가리키고 충분히 최신일 때 의미가 있습니다. 응답 서버에 연결하지 못한 상태를 good으로 바꾸면 안 됩니다. 뒤에서 revoked, unknown, 확인 불가, 검증 불가를 따로 구분합니다."
+        ]
+      },
+      {
+        "title": "로컬 CA의 발급 기록을 만들기",
+        "paragraphs": [
+          "setup은 현재 작업 폴더 아래 revocation 디렉터리에 새 CA와 서버 인증서를 만듭니다. 기존 tls나 pki 자료와 호스트 신뢰 저장소는 바꾸지 않습니다. ca.cnf는 발급 정책, index.txt는 발급·폐기 상태 기록, serial과 crlnumber는 다음 번호를 관리합니다. 실제 openssl ca 명령을 출력하므로 순서를 확인할 수 있습니다.",
+          "good.pem과 revoked.pem을 발급한 뒤 revoked.pem만 keyCompromise 사유로 폐기합니다. responder.pem에는 OCSP 응답 서명 권한을 부여합니다. unknown.pem은 같은 CA로 올바르게 서명하되 상태 데이터베이스에는 넣지 않아 OCSP unknown을 재현합니다. 이는 운영 CA 절차가 아니라 상태 불일치를 관찰하기 위한 의도적인 실험입니다."
+        ]
+      },
+      {
+        "title": "반복 실행과 자료의 수명",
+        "paragraphs": [
+          "setup을 다시 실행하면 완성된 기존 폴더는 유지합니다. CRL과 OCSP 응답에는 유효 시각이 있으므로 오래된 폴더의 응답이 시간이 지나 실패하는 것은 정상입니다. 새 자료가 필요하면 setup --dir revocation-2처럼 새 폴더를 만들고 이후 명령에도 그 경로를 사용합니다.",
+          "학습용 CA 키는 이 폴더 안에서만 사용합니다. 인증서 폐기는 CA가 서명한 새 상태 정보를 배포하는 일이며 인증서 소지자의 파일을 삭제하는 일이 아닙니다. CA 데이터베이스의 R 표시와 클라이언트가 실제로 읽는 CRL·OCSP 응답을 연결해서 보세요."
+        ]
+      }
+    ]
+  },
+  "revocation-crl": {
+    "intro": "폐기 목록을 받았다면 해당 CA의 목록인지, 지금 사용할 수 있는 시각인지, 검사할 인증서에 적용되는지 먼저 확인해야 합니다. 파일을 읽은 다음 일련번호만 문자열 검색하는 방식으로 검증을 대신하지 않습니다.",
+    "sections": [
+      {
+        "title": "CRL에 들어 있는 정보",
+        "paragraphs": [
+          "CRL에는 발급자, thisUpdate와 nextUpdate, 폐기된 인증서 일련번호와 폐기 시각·사유 등이 들어 있고 전체 내용에 서명이 붙습니다. thisUpdate는 이 상태 정보의 발행 기준 시각이고 nextUpdate는 다음 갱신이 예정된 시각입니다. CRL 번호는 여러 발행본을 구분하는 데 쓰입니다.",
+          "인증서 일련번호는 발급자 범위 안에서 의미가 있습니다. 다른 CA의 CRL에서 같은 번호를 발견했다고 이 인증서를 폐기했다고 판단할 수 없습니다. OpenSSL 검증 경로에 CRL을 연결하면 서명과 발급 관계, 시간 등 검증 규칙을 함께 적용할 수 있습니다."
+        ]
+      },
+      {
+        "title": "CRL을 넣는 것과 검사를 켜는 것",
+        "paragraphs": [
+          "crl_verify.cpp는 PEM_read_bio_X509_CRL로 파일을 X509_CRL 객체로 읽고 X509_STORE_add_crl로 store에 추가합니다. add_crl은 store가 자체 참조를 보유하도록 하므로 호출자의 crl 핸들도 자신이 가진 참조를 해제해야 합니다.",
+          "X509_STORE_set_flags의 X509_V_FLAG_CRL_CHECK는 leaf 인증서에 CRL 검사를 적용합니다. 파일을 추가하는 동작과 검사 정책을 켜는 동작은 구분됩니다. 이후 verify_leaf는 기존과 같이 이름·TLS 서버 용도·체인을 검사하면서 설정된 CRL 검사도 수행합니다."
+        ],
+        "code_anchor": "X509_STORE_set_flags("
+      },
+      {
+        "title": "누락과 만료는 폐기 확인과 다르다",
+        "paragraphs": [
+          "revoked/current는 certificate revoked로 거부됩니다. good/missing은 CRL 검사를 요청했지만 CRL을 제공하지 않아 unable to get certificate CRL로 거부됩니다. good/stale은 서명된 목록이어도 유효 시각이 지나 CRL has expired로 거부됩니다.",
+          "예제는 이 세 거부를 exit=5로 보고하고 구체적인 검증 이유를 별도 출력합니다. 같은 종료 코드라고 같은 원인은 아닙니다. stale CRL은 과거의 lastUpdate·nextUpdate로 서명한 시험 자료이며 시스템 시계를 바꾸지 않습니다."
+        ]
+      },
+      {
+        "title": "체인 전체와 실제 갱신 정책",
+        "paragraphs": [
+          "X509_V_FLAG_CRL_CHECK_ALL은 CRL_CHECK와 함께 써서 체인의 다른 인증서에 대해서도 검사를 확장합니다. 그러면 각 발급 관계에 맞는 CRL이 필요합니다. 이 실습은 root가 직접 leaf를 발급하므로 leaf 검사부터 다룹니다. 중간 CA, 간접 CRL, delta CRL은 추가 규칙이 필요한 별도 범위입니다.",
+          "인증서의 CRL Distribution Points는 목록 위치의 단서이지 받은 내용을 신뢰하라는 지시가 아닙니다. 이 C++ 예제는 파일로 제공한 CRL만 사용하고 URL을 자동 다운로드하지 않습니다. 운영 코드에서는 크기·시간 제한을 둔 수집, 검증된 자료의 캐시와 갱신, 자료가 없을 때의 정책을 별도로 설계합니다."
+        ]
+      }
+    ]
+  },
+  "revocation-ocsp": {
+    "intro": "OCSP에서는 HTTP 전송 결과, OCSP 응답 전체의 상태, 대상 인증서의 상태가 서로 다른 층에 있습니다. 로컬 HTTP 응답 서버에 질의하며 어느 단계가 무엇을 알려 주는지 확인합니다.",
+    "sections": [
+      {
+        "title": "CertID는 발급자와 인증서를 함께 가리킨다",
+        "paragraphs": [
+          "요청의 CertID는 해시 알고리즘, 발급자 이름의 해시, 발급자 공개키의 해시, 대상 인증서 일련번호로 구성됩니다. serial만으로는 다른 CA가 발급한 인증서를 구분할 수 없습니다. OCSP_cert_to_id는 대상 인증서와 발급자 인증서로 이 식별자를 만듭니다.",
+          "이 실습의 CertID는 SHA-1을 식별 해시로 사용하지만 응답 서명에는 별도로 SHA-256을 사용합니다. CertID의 해시와 응답 서명 알고리즘을 같은 것으로 읽으면 안 됩니다. 이 검사기는 해당 요청 형식에 맞춘 응답을 찾으며 임의의 모든 CertID 해시 변형을 처리하는 범용 클라이언트는 아닙니다."
+        ],
+        "code_anchor": "OCSP_cert_to_id(",
+        "code_file": "examples/cpp/revocation.hpp"
+      },
+      {
+        "title": "응답을 받았다는 것과 인증서가 정상이라는 것",
+        "paragraphs": [
+          "HTTP 200은 응답 바이트를 받았다는 의미입니다. OCSPResponseStatus의 successful은 상태 응답을 정상 형식으로 제공했다는 의미이고, 내부 SingleResponse의 good·revoked·unknown이 대상 인증서 상태입니다. successful 응답 안에도 revoked가 들어갈 수 있습니다.",
+          "good은 응답자가 그 대상에 대해 폐기 상태를 보고하지 않는다는 뜻이며 인증서 이름·유효기간·체인 검증을 대신하지 않습니다. unknown은 응답자가 해당 인증서의 상태를 알지 못한다는 뜻입니다. HTTP 오류나 연결 시간 초과는 unknown이라는 서명된 답을 받은 것이 아니라 응답을 얻지 못한 상태입니다."
+        ]
+      },
+      {
+        "title": "누가 상태 응답에 서명할 수 있는가?",
+        "paragraphs": [
+          "발급 CA가 직접 서명하거나, 정해진 위임 조건을 충족한 응답 서명자가 서명할 수 있습니다. 실습의 responder.pem은 같은 CA가 발급하고 OCSPSigning 확장 키 용도를 포함합니다. 응답에 서명자 인증서가 붙어 있어도 그 인증서를 무조건 신뢰하지 않습니다.",
+          "OCSP_basic_verify는 응답 서명과 서명자의 경로·OCSP 서명 권한을 검사합니다. 이것만 성공했다고 대상 인증서의 상태가 good인지, 조회한 인증서가 맞는지, 정보가 최신인지까지 검사한 것은 아닙니다. 마지막 C++ 레슨에서 이 검사를 순서대로 연결합니다."
+        ]
+      },
+      {
+        "title": "로컬 HTTP 서버와 nonce의 선택",
+        "paragraphs": [
+          "실습 도구는 127.0.0.1 임시 포트에 HTTP 래퍼를 띄우고 받은 요청 DER를 openssl ocsp의 실제 응답 생성 기능에 전달합니다. 응답은 CA 데이터베이스 상태를 읽어 서명됩니다. 요청이 끝나면 서버와 작업 스레드를 정리하므로 외부 서비스나 상시 실행 프로세스가 필요 없습니다.",
+          "nonce는 요청에 넣은 무작위 값을 응답에 연결하여 이전 응답의 재사용을 검출하는 데 쓰입니다. 이 실습은 파일 검증과 Stapling에서 같은 구조를 다루기 위해 -no_nonce를 명시하고 서명·대상·시간 검사를 적용합니다. 그러므로 특정 요청에만 유효한 응답이라는 보장은 제공하지 않습니다. nonce를 사용하는 클라이언트는 원래 요청을 유지하고 응답과 일치하는지도 검사해야 합니다."
+        ]
+      }
+    ]
+  },
+  "revocation-stapling": {
+    "intro": "Stapling은 TLS 서버가 미리 받은 OCSP 응답을 핸드셰이크에 첨부하는 방식입니다. 클라이언트가 CA 응답 서버에 직접 연결하지 않아도 되지만 전달받은 응답의 신뢰성과 최신성 검사는 그대로 필요합니다.",
+    "sections": [
+      {
+        "title": "누가 응답을 만들고 누가 전달하는가?",
+        "paragraphs": [
+          "OCSP 응답 서명자는 상태 정보에 서명하고 TLS 서버는 그 응답을 전달합니다. 서버가 직접 자기 상태를 good이라고 적어서 보내는 구조가 아닙니다. 클라이언트는 서명된 내용이 실제 서버 인증서를 가리키는지와 유효 시각을 검사합니다.",
+          "실습에서는 s_server의 -status_file로 준비한 DER 응답을 첨부합니다. good, revoked, stale, badsig 등의 파일을 바꿔 실제 TLS 핸드셰이크 결과를 관찰합니다. 원래 서버의 인증서 체인 검증은 계속 활성화되어 있습니다."
+        ]
+      },
+      {
+        "title": "요청과 수락 판정은 별도 API다",
+        "paragraphs": [
+          "staple_client.cpp는 SSL_set_tlsext_status_type으로 OCSP 응답을 요청하고 SSL_CTX_set_tlsext_status_cb로 검사 콜백을 등록합니다. 요청 플래그만 켜면 애플리케이션이 원하는 엄격한 폐기 정책까지 저절로 적용되는 것은 아닙니다.",
+          "check_staple은 SSL_get_tlsext_status_ocsp_resp로 응답 바이트를 빌려 읽습니다. 받은 응답은 verify_ocsp에 넘겨 검사하고 클라이언트 콜백에서 양수면 수락, 0이면 거부, 음수면 처리 오류로 반환합니다. C++ 예외는 콜백 안에서 잡아 C 호출 경계 밖으로 전파하지 않습니다."
+        ],
+        "code_anchor": "int check_staple("
+      },
+      {
+        "title": "응답 누락과 명시적인 거부를 구분하기",
+        "paragraphs": [
+          "strict 정책은 응답 누락도 거부합니다. soft-missing은 누락에 한해서만 연결을 허용하고 status NOT established라는 예외 기록을 남깁니다. 이 모드에서도 revoked, unknown, 만료, 서명 오류는 허용하지 않습니다.",
+          "이는 정책 차이를 관찰하기 위한 의도적인 두 선택입니다. 응답이 없다고 모든 서비스가 반드시 같은 결론을 내려야 하는 것은 아니지만, 확인하지 못한 상태를 GOOD으로 기록해서는 안 됩니다. 이 예제의 exit=0에는 정책 예외에 따른 허용도 있으므로 상세 출력도 읽어야 합니다."
+        ]
+      },
+      {
+        "title": "재개 연결과 Must-Staple의 범위",
+        "paragraphs": [
+          "인증서를 교환하지 않는 세션 재개에서는 상태 콜백이 호출되지 않을 수 있습니다. 예제는 매번 새 전체 핸드셰이크를 하고 session_reused가 아닌지, 콜백이 실제 호출됐는지를 확인합니다. 서비스에서는 재개 티켓 수명과 이전 상태 정보의 유효 기간을 함께 고려해야 합니다.",
+          "Must-Staple은 인증서의 TLS Feature 확장으로 상태 응답 요구를 표현하는 방식입니다. 이 실습 인증서에는 해당 확장이 없으며 strict는 애플리케이션이 직접 정한 정책입니다. 요청 플래그나 인증서 확장의 존재만으로 모든 클라이언트가 같은 정책을 집행한다고 가정하지 않습니다."
+        ]
+      }
+    ]
+  },
+  "revocation-api": {
+    "intro": "마지막으로 응답 바이트를 받아 사용 여부를 결정하는 전체 경로를 읽습니다. ocsp_verify.cpp가 인증서를 검증하고, revocation.hpp의 verify_ocsp가 응답을 파싱·검증하여 구분된 결과를 돌려줍니다.",
+    "sections": [
+      {
+        "title": "파싱 뒤에도 여러 검사가 남아 있다",
+        "paragraphs": [
+          "read_der는 파일 크기를 1MiB로 제한하고 전부 읽었는지 확인합니다. d2i_OCSP_RESPONSE는 입력 커서를 이동시키므로 파싱 결과뿐 아니라 끝까지 소비했는지도 확인합니다. 이 단계의 성공은 단지 데이터를 OCSP 구조로 읽었다는 뜻입니다.",
+          "응답 전체가 successful인지 확인한 뒤 OCSP_response_get1_basic으로 내부 BasicOCSPResponse를 얻습니다. get1 결과는 새로 해제해야 할 객체입니다. Response와 Basic 핸들을 각각 관리하면 중간 검증이 실패해도 정리됩니다."
+        ],
+        "code_anchor": "Response response(",
+        "code_file": "examples/cpp/revocation.hpp"
+      },
+      {
+        "title": "서명 검증 뒤에 대상과 시간을 검사하기",
+        "paragraphs": [
+          "OCSP_basic_verify에 신뢰 store와 flags=0을 전달하여 서명과 서명자 권한을 검사합니다. 이어 OCSP_resp_find_status로 기대한 CertID에 해당하는 상태를 찾습니다. 응답 안의 첫 항목을 무조건 사용하는 코드는 여러 인증서가 포함된 응답에서 잘못된 결론을 낼 수 있습니다. unauthorized.der는 서버 인증용 키로 응답에 서명하여, 수학적인 서명이 맞아도 OCSP 서명 권한이 없으면 거부됨을 시험합니다.",
+          "find_status의 1은 항목을 찾았다는 뜻입니다. 실제 상태는 status 출력 인자에 들어갑니다. this_update와 next_update는 Basic 내부 값을 빌린 포인터이므로 따로 해제하지 않습니다. reason과 revoked_at은 revoked 상태에서 의미가 있습니다."
+        ],
+        "code_anchor": "const int signature_verified",
+        "code_file": "examples/cpp/revocation.hpp"
+      },
+      {
+        "title": "최신성 정책을 코드로 표현하기",
+        "paragraphs": [
+          "이 예제는 nextUpdate가 반드시 있어야 한다는 자체 정책을 먼저 적용합니다. OCSP_check_validity에는 시계 오차 허용 30초와 thisUpdate 최대 나이 3600초를 전달합니다. nextUpdate가 미래더라도 정보가 지나치게 오래되었으면 사용하지 않도록 제한합니다.",
+          "OCSP 표준에서 nextUpdate가 없는 응답이 가능하다는 사실과 우리 프로그램이 그것을 허용할지는 별개입니다. stale·future·no-next 자료는 시간 오류를 시험하도록 올바른 서명으로 만든 파일입니다. ocsp_fixture.cpp는 이 시험 자료를 만들기 위한 보조 예제이며 시스템 시각은 변경하지 않습니다."
+        ],
+        "code_anchor": "OCSP_check_validity(",
+        "code_file": "examples/cpp/revocation.hpp"
+      },
+      {
+        "title": "반환값으로 무엇을 구분하는가?",
+        "paragraphs": [
+          "OCSP 예제의 종료 코드는 0 good, 2 revoked, 3 unknown, 4 unavailable, 5 invalid, 1 처리 오류입니다. good 외 상태를 자동으로 정상으로 바꾸지 않습니다. CRL 예제는 X509 검증 거부를 5로 묶고 별도 오류 문자열로 폐기·누락·만료를 구분합니다. 이 값들은 OpenSSL 공통 코드가 아닌 각 예제의 계약입니다.",
+          "예를 들어 missing.pem 같은 파일 읽기 오류는 1, 파싱할 수 있는 다른 인증서의 응답은 5, 유효하게 서명된 unknown은 3입니다. 네트워크 실패와 invalid 응답을 구별하면 운영 로그에서 가용성 문제와 검증 거부를 혼동하지 않을 수 있습니다."
+        ]
+      },
+      {
+        "title": "캐시와 네트워크 실패를 운영 코드에 연결하기",
+        "paragraphs": [
+          "캐시 키에는 인증서의 발급자와 식별 정보가 들어가야 하고, 응답의 서명·권한·시각이 검증된 뒤 사용해야 합니다. 캐시 만료를 다운로드 시점부터 임의로 연장하면 nextUpdate가 지난 응답을 계속 쓰게 됩니다. 갱신 실패 시 기존 자료를 사용할 수 있는지는 그 자료의 유효 기간과 정책으로 판단합니다.",
+          "실제 HTTP 수집에는 응답 크기, 시간 제한, 리다이렉션과 접속 대상 정책이 필요합니다. 인증서 안의 URL은 외부 입력이므로 무제한으로 접근하지 않습니다. 이 교재는 주소를 loopback으로 고정하고 로컬 응답 서버에서만 실험합니다. 상태를 확인하지 못했을 때 허용할지 거부할지는 명시적으로 정하고, 허용 예외를 검증 성공과 분리해 기록합니다."
+        ]
+      }
+    ]
   }
 }

@@ -1,6 +1,6 @@
 # OpenSSL Study — C++ 개발자를 위한 기초부터 API까지
 
-암호학·TLS·OpenSSL API를 기초부터 배우되 실제 C++ 코드의 인자, 소유권, 반환값, 실패 경로까지 이해하는 로컬 학습실입니다. **OpenSSL 3.5.7 + C++20**, 6개 영역의 **37개 한국어 레슨**, **69개 API 계약 설명**, **16개 C++ 예제**가 있습니다. 안내 시간 합계는 약 18시간이며 직접 입력·변형 실험에 따라 더 걸릴 수 있습니다.
+암호학·TLS·OpenSSL API를 기초부터 배우되 실제 C++ 코드의 인자, 소유권, 반환값, 실패 경로까지 이해하는 로컬 학습실입니다. **OpenSSL 3.5.7 + C++20**, 7개 영역의 **42개 한국어 레슨**, **80개 API 계약 설명**, **20개 C++ 예제**가 있습니다. 안내 시간 합계는 약 21시간이며 직접 입력·변형 실험에 따라 더 걸릴 수 있습니다.
 
 TPROXY나 프록시 구현을 가르치는 프로젝트는 아닙니다. 일반 OpenSSL의 기초를 익힌 뒤 마지막에 epoll과 Boost.Asio를 연결합니다.
 
@@ -26,6 +26,7 @@ http://localhost:8440 에 접속합니다. 첫 빌드에는 인터넷이 필요�
 | C++ 프로그래밍 | 5개 | EVP API 다시 읽기, Ed25519, 동기 TLS, epoll 재시도, Asio 비동기 TLS |
 | QUIC | 5개 | UDP·TLS 1.3, 연결, 스트림, 실패, 이벤트 타이머 |
 | QAT | 4개 | HW/SW 가속, Provider 선택과 정확성, ASYNC 중단·재개, 성능 기준선 |
+| 인증서 폐기 | 5개 | 폐기·만료 차이, CRL, 로컬 OCSP, TLS Stapling, C++ 검증·실패 정책 |
 
 처음에는 **출발점: 바이트와 암호 도구의 역할**부터 진행하세요. C++ 경험은 전제하지만 암호학 지식은 전제하지 않습니다. 초반 예제의 `study.hpp`는 소유권 관리를 돕는 공통 헤더입니다. 먼저 동작을 관찰하고 3영역에서 해제 규칙과 구현을 다시 읽습니다.
 
@@ -90,7 +91,7 @@ study-build examples/cpp/asio_client.cpp localhost
 - 기존 `openssl-study_lab-data` Docker 볼륨의 `/home/student/lab`을 계속 사용합니다.
 - 시작 시 없는 예제를 복사하고, 최초 배포본과 내용이 일치하는 기존 예제만 주석판으로 갱신합니다. 수정한 파일은 보존합니다. 새 C++ 예제는 `examples/cpp`에 추가됩니다.
 - 기존 C 예제는 남아 있고 기본 프로그래밍 레슨은 C++로 연결됩니다.
-- 기존 레슨 ID 12개와 localStorage 키를 유지합니다. 완료 표시는 보존되고 새 레슨 16개가 더해져 분모가 28이 됩니다. 완료 표시는 각 레슨에서 직접 변경할 수 있습니다.
+- 기존 레슨 ID와 localStorage 키를 유지합니다. 완료 기록은 보존되며 전체 레슨 수에 맞춰 진행률 분모가 갱신됩니다.
 - 새로고침 시 새 셸을 엽니다. 저장 파일은 유지되지만 미저장 코드·셸 내부 상태는 유지되지 않습니다. localhost와 127.0.0.1의 브라우저 진행 기록은 별개입니다.
 
 웹은 호스트 `127.0.0.1:8440`에만 바인딩합니다. 컨테이너는 student 계정이며 Docker 소켓·호스트 폴더를 마운트하지 않습니다. 실제 셸을 제공하는 로컬 단일 사용자 도구이므로 LAN/인터넷 공개용 인증 서비스로 사용하지 않습니다.
@@ -121,7 +122,7 @@ docker compose exec -T study python /opt/scripts/web_test.py
 ```
 
 - `cpp_test.py`: 임시 폴더에서 13개 C++ 예제 빌드, SHA-256/HMAC/HKDF 독립 계산 비교, AEAD 3종 변조, 서명·키 타입 오류, 인증서 검증, 동기·epoll·Asio TLS, 갑작스러운 EOF, deadline, RAII ASan/UBSan 정상·예외 경로.
-- `curriculum_test.py`: 임시 폴더에서 화면의 37개 레슨 명령과 체크포인트를 순서대로 실행.
+- `curriculum_test.py`: 임시 폴더에서 화면의 42개 레슨 명령과 체크포인트를 순서대로 실행.
 - `web_test.py`: 세션/Origin/Host, 경로 제한, 저장·읽기, WebSocket PTY, 교재 API.
 
 학습자가 편집한 파일을 바꾸지 않습니다. 전체 검사에는 수십 초 이상 걸릴 수 있고 실습 서버가 실행 중이어야 합니다. 기존 `smoke_test.py`는 보존된 C 예제용입니다.
@@ -150,7 +151,7 @@ docker compose exec -T study python /opt/scripts/web_test.py
 
 ## QUIC 전용 섹션 (OpenSSL 3.5.7)
 
-목차의 다섯 번째 영역에서 QUIC/TLS/HTTP3 구분, 연결·인증·ALPN, 스트림·FIN·종료, 실패 진단, epoll과 타이머를 순서대로 학습합니다. 기존 학습 완료 기록은 유지되고 전체 레슨 수는 37개입니다.
+목차의 다섯 번째 영역에서 QUIC/TLS/HTTP3 구분, 연결·인증·ALPN, 스트림·FIN·종료, 실패 진단, epoll과 타이머를 순서대로 학습합니다. 기존 학습 완료 기록은 유지되고 전체 레슨 수는 42개입니다.
 
 `cd ~/lab && study-build examples/cpp/quic_local.cpp ok`로 시작합니다. `multi`, `bad-host`, `bad-alpn`, `epoll` 실행인자를 IDE에서도 선택할 수 있습니다. 서버는 실행마다 loopback 임의 UDP 포트에서 자동으로 생성·정리됩니다. 외부 서버나 추가 포트 공개가 필요하지 않습니다. 이름·ALPN 실패는 exit=1이 예상 결과입니다.
 
@@ -160,7 +161,7 @@ docker compose exec -T study python /opt/scripts/web_test.py
 
 ## 흐름 지도와 API 사전
 
-상단의 **흐름 지도·API 사전**에서 별도 시각 학습 페이지를 엽니다. 전체 연결 지도, HMAC, 서명, ECDH/HKDF, AEAD, TLS 1.3, 인증서 신뢰 경로, QUIC, QAT의 9개 흐름을 단계별 설명·비교표로 확인합니다. 각 단계는 관련 API 검색과 교재로 연결됩니다.
+상단의 **흐름 지도·API 사전**에서 별도 시각 학습 페이지를 엽니다. 전체 연결 지도, HMAC, 서명, ECDH/HKDF, AEAD, TLS 1.3, 인증서 신뢰 경로, QUIC, QAT, 인증서 폐기의 10개 흐름을 단계별 설명·비교표로 확인합니다. 각 단계는 관련 API 검색과 교재로 연결됩니다.
 
 API 사전은 기존 교재 데이터를 읽어 이름·기능·인자와 분야로 검색합니다. 일반 계약이 동일한 항목만 합치고 설명이 다른 항목은 유지합니다. OpenSSL 전체 API를 망라하는 사전은 아닙니다. 학습 완료 기록을 변경하지 않습니다.
 
@@ -171,3 +172,21 @@ API 사전은 기존 교재 데이터를 읽어 이름·기능·인자와 분야
 QAT 섹션은 하드웨어 없이 Provider 선택·실패 처리와 실제 OpenSSL ASYNC API를 실험할 수 있습니다. `qat_probe.cpp`는 선택한 Provider로 AES-GCM 결과를 확인하고, `async_pause.cpp`는 작업 완료와 작업 성공의 차이를 보여 줍니다. QAT 모듈이 없으면 명시적으로 exit=77을 출력합니다. 기본 이미지에는 Intel QAT Provider·드라이버를 설치하지 않으며 하드웨어 가속을 제공한다고 주장하지 않습니다. 실제 장치 실행은 지원 호스트·드라이버·Provider 조합과 별도 계측이 필요합니다.
 
 검증: `docker compose exec -T study python /opt/scripts/qat_test.py`. 기존 학습 파일을 건드리지 않고 임시 폴더에서 컴파일·실행합니다.
+
+## CRL·OCSP·Stapling 학습
+
+목차의 일곱 번째 영역을 X.509 다음에 읽으면 됩니다. 터미널에서 `cd ~/lab` 후 `python /opt/scripts/revocation_lab.py setup`을 실행하면 별도 `revocation` 폴더에 CA·발급 기록·CRL·서명된 OCSP 시험 자료를 만듭니다. 기존 폴더를 초기화하지 않습니다. 오래된 자료를 새로 만들려면 `setup --dir revocation-2`처럼 새 경로를 선택하세요. 서버 인증서는 365일, 현재 CRL은 7일, 저장한 정상 OCSP 응답은 약 1시간 유효합니다. 온라인 질의는 새 응답을 생성합니다.
+
+- `python /opt/scripts/revocation_lab.py ocsp good` — loopback HTTP 래퍼에서 실제 `openssl ocsp` 응답을 생성하고 CLI 및 C++로 검사합니다. `revoked`, `unknown`, `badsig`, `unavailable`을 비교할 수 있습니다.
+- `python /opt/scripts/revocation_lab.py staple good` — 임시 TLS 1.3 서버와 C++ 클라이언트를 실행한 뒤 정리합니다. `missing`, `stale`, `future`, `no-next`, `badsig`, `wrong-id`, `unauthorized`, `revoked`, `unknown`도 지원합니다.
+- `--policy soft-missing`은 응답 누락만 예외로 허용합니다. 검증 성공이나 OCSP good으로 표시하지 않습니다.
+- `crl_verify.cpp`, `ocsp_verify.cpp`, `staple_client.cpp`가 검증 예제이며 `revocation.hpp`는 공유 검증 순서입니다. `ocsp_fixture.cpp`는 시스템 시각을 바꾸지 않고 잘못된 시간 조건의 서명 응답을 만드는 보조 도구입니다.
+
+직접 Stapling 서버를 유지하며 편집기에서 실험하려면 별도 터미널에서 다음을 실행하고, `staple_client.cpp`에 `revocation 4444 strict`를 전달합니다. 완료 후 서버 터미널에서 Ctrl+C로 종료합니다.
+
+```bash
+cd ~/lab/revocation
+openssl s_server -accept 127.0.0.1:4444 -cert good.pem -key good.key -tls1_3 -www -status_file good.der
+```
+
+회귀 검증: `docker compose exec -T study python /opt/scripts/revocation_test.py`. 임시 폴더에서 서명·권한·대상·시각·상태, 실제 HTTP 질의, TLS Stapling 거부와 누락 예외를 검사하며 학생 파일은 수정하지 않습니다. 학습 CA를 호스트 신뢰 저장소에 설치하지 않습니다.

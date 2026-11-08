@@ -27,5 +27,5 @@ for lesson in LESSONS:
         assert actual == code['text'], (lesson['id'], code['file'])
         assert code['anchor'] in actual
         total += 1
-assert len(LESSONS)==37
-print(f'PASS: 37 reading routes; {total} exact source excerpts; API contracts and exercise anchors')
+assert len(LESSONS)==42
+print(f'PASS: 42 reading routes; {total} exact source excerpts; API contracts and exercise anchors')

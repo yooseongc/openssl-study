@@ -1,0 +1,433 @@
+[
+  {
+    "id": "revocation-basics",
+    "module": 7,
+    "title": "유효기간이 남았는데 인증서를 거부하는 이유",
+    "minutes": 35,
+    "steps": [
+      {
+        "title": "발급·폐기 자료 준비",
+        "text": "새 폴더에서 실제 CA 명령을 실행하고 정상·실패용 응답을 생성합니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py setup",
+        "expect": "READY 메시지. 다시 실행하면 기존 자료를 재사용합니다."
+      },
+      {
+        "title": "폐기했어도 기본 체인 검증은 통과",
+        "text": "아직 CRL/OCSP 확인을 요청하지 않은 명령입니다.",
+        "command": "cd ~/lab\nopenssl verify -CAfile revocation/ca.pem -purpose sslserver -verify_hostname localhost revocation/revoked.pem\ncat revocation/index.txt",
+        "expect": "revoked.pem: OK와 데이터베이스의 R 항목을 함께 볼 수 있습니다. OK가 폐기 상태까지 확인한 뜻은 아닙니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "X509_verify_cert(ctx)",
+        "purpose": "검증 컨텍스트의 인증서 경로와 설정된 정책을 검사합니다.",
+        "usage": "신뢰 저장소, 대상 인증서와 검증 조건을 먼저 설정합니다. 폐기 검사는 CRL 자료와 검사 플래그 등 별도 설정이 필요하며 일반 호출이 모든 OCSP 주소를 자동 조회하지 않습니다.",
+        "args": "ctx는 X509_STORE_CTX_init으로 준비한 검증 컨텍스트입니다.",
+        "ownership": "입력 인증서와 store는 검증 중 유지합니다. context를 해제해도 호출자가 소유한 입력 참조의 해제 책임은 남습니다.",
+        "returns": "1은 성공, 0은 검증 거부, 음수는 예외적 처리 오류입니다.",
+        "failure": "X509_STORE_CTX_get_error와 get_error_depth로 실패 이유·위치를 확인합니다. 모든 실패를 certificate revoked라고 보고하지 않습니다.",
+        "lab": "다음 CRL 레슨의 verify_leaf가 같은 체인 검증에 CRL 정책을 추가하여 결과 차이를 보여 줍니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "폐기",
+        "meaning": "유효기간 중이라도 더 이상 사용하지 않도록 인증기관이 알리는 상태."
+      },
+      {
+        "name": "CRL",
+        "meaning": "인증기관이 서명한 인증서 폐기 목록."
+      },
+      {
+        "name": "OCSP",
+        "meaning": "특정 인증서 상태를 질의하고 서명된 응답을 확인하는 프로토콜."
+      }
+    ],
+    "quiz": {
+      "question": "폐기된 인증서의 발급자 서명이 여전히 맞을 수 있나요?",
+      "options": [
+        "네. 인증서 서명 검증과 이후 폐기 상태 확인은 다른 검사입니다.",
+        "아니요. 폐기하면 인증서 파일의 서명 바이트가 자동 변경됩니다."
+      ],
+      "answer": 0,
+      "explanation": "폐기는 인증서 파일을 바꾸는 것이 아니라 별도 상태 정보를 발행하는 과정입니다."
+    },
+    "challenge": "검증에 실패한 단계와 이유를 기록하고, 그 결과가 폐기 확인인지 상태 확인 불가인지 설명해 보세요.",
+    "docs": [
+      "https://docs.openssl.org/3.5/man1/openssl-ca/",
+      "https://docs.openssl.org/3.5/man1/openssl-ocsp/",
+      "https://docs.openssl.org/3.5/man3/OCSP_resp_find_status/",
+      "https://docs.openssl.org/3.5/man3/SSL_CTX_set_tlsext_status_cb/",
+      "https://docs.openssl.org/3.5/man3/X509_VERIFY_PARAM_set_flags/",
+      "https://www.rfc-editor.org/rfc/rfc6960.html",
+      "https://www.rfc-editor.org/rfc/rfc5280.html"
+    ]
+  },
+  {
+    "id": "revocation-crl",
+    "module": 7,
+    "title": "CRL: 목록의 서명·시각·대상을 함께 확인하기",
+    "minutes": 35,
+    "steps": [
+      {
+        "title": "CRL 필드 읽기",
+        "text": "setup을 먼저 실행한 상태에서 내용을 확인합니다.",
+        "command": "cd ~/lab\nopenssl crl -in revocation/current.crl.pem -text -noout",
+        "expect": "Issuer, Last Update, Next Update와 revoked 인증서의 일련번호·Key Compromise 사유."
+      },
+      {
+        "title": "명령행으로 정상과 폐기 비교",
+        "text": "같은 CA·CRL·이름 조건으로 두 인증서를 검사합니다.",
+        "command": "cd ~/lab\nopenssl verify -CAfile revocation/ca.pem -CRLfile revocation/current.crl.pem -crl_check -purpose sslserver -verify_hostname localhost revocation/good.pem revocation/revoked.pem",
+        "expect": "good.pem: OK, revoked.pem은 certificate revoked로 거부."
+      },
+      {
+        "title": "C++로 CRL 검사",
+        "text": "store에 CRL과 정책을 연결합니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/crl_verify.cpp revocation good current\necho \"exit=$?\"\nstudy-build examples/cpp/crl_verify.cpp revocation revoked current\necho \"exit=$?\"",
+        "expect": "good은 exit=0, revoked는 이유 출력과 exit=5."
+      },
+      {
+        "title": "CRL 누락과 만료 구분",
+        "text": "인증서는 정상으로 두고 사용할 CRL만 바꿉니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/crl_verify.cpp revocation good missing\necho \"exit=$?\"\nstudy-build examples/cpp/crl_verify.cpp revocation good stale\necho \"exit=$?\"",
+        "expect": "두 경우 모두 exit=5이지만 unable to get certificate CRL과 CRL has expired로 원인이 다릅니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "X509_STORE_add_crl(store, crl)",
+        "purpose": "검증에 사용할 CRL을 인증서 저장소에 추가합니다.",
+        "usage": "CRL을 파싱한 뒤 추가하고 검사 플래그를 설정합니다. 추가 성공 자체가 CRL 서명이나 최신성 검증 성공은 아닙니다.",
+        "args": "store는 대상 X509_STORE, crl은 X509_CRL 객체입니다.",
+        "ownership": "저장소가 참조를 보유하며 호출자는 원래 참조를 계속 소유합니다. 호출자 참조는 X509_CRL_free로 해제합니다.",
+        "returns": "1 성공, 0 실패.",
+        "failure": "0이면 오류 큐를 확인하고 필요한 목록이 등록됐다고 가정하지 않습니다.",
+        "lab": "crl 핸들은 스코프 끝에 정리되고 store는 자체 참조를 사용하는 동안 유지됩니다."
+      },
+      {
+        "name": "X509_STORE_set_flags(store, flags)",
+        "purpose": "저장소에서 사용할 인증서 검증 플래그를 설정합니다.",
+        "usage": "검증 컨텍스트를 초기화하기 전에 정책을 준비합니다. CRL_CHECK로 leaf를 검사하고 CRL_CHECK_ALL을 함께 쓰면 검사 범위를 체인으로 확장합니다.",
+        "args": "store는 검증 저장소, flags는 X509_V_FLAG_* 비트 조합입니다.",
+        "ownership": "객체 소유권을 변경하지 않으며 외부 CRL 파일을 내려받거나 소유하지 않습니다.",
+        "returns": "1 성공, 0 실패.",
+        "failure": "설정 실패 후 검증을 계속하면 의도한 정책이 적용됐다고 보장할 수 없습니다.",
+        "lab": "missing 모드에서도 CRL_CHECK를 켜 두어 자료 부족을 성공으로 숨기지 않습니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "thisUpdate",
+        "meaning": "폐기 상태 정보의 기준 시각."
+      },
+      {
+        "name": "nextUpdate",
+        "meaning": "다음 정보 갱신이 예정된 시각. 지난 정보를 무조건 최신으로 사용하지 않습니다."
+      },
+      {
+        "name": "CRL_CHECK",
+        "meaning": "leaf 인증서에 CRL 검사를 적용하는 OpenSSL 검증 플래그."
+      }
+    ],
+    "quiz": {
+      "question": "CRL 검사에서 목록을 구할 수 없으면 무엇을 확인한 것인가요?",
+      "options": [
+        "폐기 상태를 확인하지 못했습니다.",
+        "인증서가 폐기되지 않았음을 확인했습니다."
+      ],
+      "answer": 0,
+      "explanation": "자료 부족은 정상 상태의 증거가 아닙니다. 정책에 따라 거부하거나 별도 예외로 기록해야 합니다."
+    },
+    "challenge": "검증에 실패한 단계와 이유를 기록하고, 그 결과가 폐기 확인인지 상태 확인 불가인지 설명해 보세요.",
+    "docs": [
+      "https://docs.openssl.org/3.5/man1/openssl-ca/",
+      "https://docs.openssl.org/3.5/man1/openssl-ocsp/",
+      "https://docs.openssl.org/3.5/man3/OCSP_resp_find_status/",
+      "https://docs.openssl.org/3.5/man3/SSL_CTX_set_tlsext_status_cb/",
+      "https://docs.openssl.org/3.5/man3/X509_VERIFY_PARAM_set_flags/",
+      "https://www.rfc-editor.org/rfc/rfc6960.html",
+      "https://www.rfc-editor.org/rfc/rfc5280.html"
+    ],
+    "file": "examples/cpp/crl_verify.cpp"
+  },
+  {
+    "id": "revocation-ocsp",
+    "module": 7,
+    "title": "OCSP: successful과 good은 다른 결과다",
+    "minutes": 35,
+    "steps": [
+      {
+        "title": "good 응답 질의",
+        "text": "출력되는 명령과 HTTP 응답 검증 결과, C++ 판정을 차례로 읽습니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py ocsp good\necho \"exit=$?\"",
+        "expect": "Response verify OK, good, C++ GOOD 및 exit=0. 응답은 online-good.der에 저장됩니다."
+      },
+      {
+        "title": "revoked와 unknown 비교",
+        "text": "서명된 두 상태를 구분합니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py ocsp revoked\necho \"exit=$?\"\npython /opt/scripts/revocation_lab.py ocsp unknown\necho \"exit=$?\"",
+        "expect": "C++ 정책 결과는 REVOKED exit=2와 UNKNOWN exit=3. CLI 종료 코드만으로 인증서 상태를 단정하지 않습니다."
+      },
+      {
+        "title": "서명 오류와 서비스 불가",
+        "text": "내용의 진위 문제와 응답 자체를 얻지 못한 문제를 비교합니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py ocsp badsig\necho \"exit=$?\"\npython /opt/scripts/revocation_lab.py ocsp unavailable\necho \"exit=$?\"",
+        "expect": "서명 변조는 INVALID exit=5, HTTP 503은 UNAVAILABLE exit=4. 둘 다 good이 아닙니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "OCSP_cert_to_id(digest, subject, issuer)",
+        "purpose": "질의할 인증서의 OCSP CertID를 생성합니다.",
+        "usage": "발급자 인증서를 정확히 선택한 뒤 요청이나 응답 검색에 사용할 식별자를 만듭니다. 이 함수는 인증서 체인을 검증하거나 네트워크 질의를 수행하지 않습니다.",
+        "args": "digest는 발급자 식별 해시에 사용할 EVP_MD이며 nullptr이면 SHA-1을 사용합니다. subject는 대상 인증서, issuer는 발급자 인증서입니다.",
+        "ownership": "새 OCSP_CERTID는 호출자가 OCSP_CERTID_free로 해제합니다. 입력 인증서를 소비하지 않습니다.",
+        "returns": "성공 시 OCSP_CERTID*, 실패 시 nullptr.",
+        "failure": "실패한 식별자로 상태 검색을 계속하지 않습니다.",
+        "lab": "verify_ocsp가 기대한 leaf와 ca.pem으로 식별자를 만든 뒤 응답 안에서 같은 ID를 찾습니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "CertID",
+        "meaning": "발급자 이름·키 해시와 인증서 일련번호 등을 묶은 OCSP 조회 식별자."
+      },
+      {
+        "name": "OCSPSigning",
+        "meaning": "위임된 OCSP 응답 서명자 인증서에서 사용하는 확장 키 용도."
+      },
+      {
+        "name": "nonce",
+        "meaning": "요청과 응답을 연결하기 위해 요청자가 추가하는 임의 값."
+      }
+    ],
+    "quiz": {
+      "question": "OCSP successful 응답에 revoked 상태가 포함될 수 있나요?",
+      "options": [
+        "네. 응답 프로토콜 성공과 대상 인증서 상태는 다릅니다.",
+        "아니요. successful이면 인증서를 받아들여도 됩니다."
+      ],
+      "answer": 0,
+      "explanation": "서명·대상·시각 검사 뒤에도 내부 인증서 상태가 good인지 별도로 확인해야 합니다."
+    },
+    "challenge": "검증에 실패한 단계와 이유를 기록하고, 그 결과가 폐기 확인인지 상태 확인 불가인지 설명해 보세요.",
+    "docs": [
+      "https://docs.openssl.org/3.5/man1/openssl-ca/",
+      "https://docs.openssl.org/3.5/man1/openssl-ocsp/",
+      "https://docs.openssl.org/3.5/man3/OCSP_resp_find_status/",
+      "https://docs.openssl.org/3.5/man3/SSL_CTX_set_tlsext_status_cb/",
+      "https://docs.openssl.org/3.5/man3/X509_VERIFY_PARAM_set_flags/",
+      "https://www.rfc-editor.org/rfc/rfc6960.html",
+      "https://www.rfc-editor.org/rfc/rfc5280.html"
+    ],
+    "file": "examples/cpp/ocsp_verify.cpp"
+  },
+  {
+    "id": "revocation-stapling",
+    "module": 7,
+    "title": "OCSP Stapling: 서버가 전달해도 검증은 클라이언트가 한다",
+    "minutes": 35,
+    "steps": [
+      {
+        "title": "정상 Stapling",
+        "text": "임시 loopback TLS 서버를 띄우고 C++ 클라이언트로 검증한 뒤 정리합니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py staple good\necho \"exit=$?\"",
+        "expect": "GOOD, ACCEPT verified staple, exit=0."
+      },
+      {
+        "title": "폐기와 만료 응답 거부",
+        "text": "서버가 응답을 보냈다는 사실만으로 통과하지 않습니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py staple revoked\necho \"exit=$?\"\npython /opt/scripts/revocation_lab.py staple stale\necho \"exit=$?\"",
+        "expect": "TLS REJECTED. revoked는 exit=2, stale은 exit=5."
+      },
+      {
+        "title": "누락 정책 비교",
+        "text": "응답이 없는 서버에 strict와 soft-missing을 각각 적용합니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py staple missing\necho \"exit=$?\"\npython /opt/scripts/revocation_lab.py staple missing --policy soft-missing\necho \"exit=$?\"",
+        "expect": "strict는 exit=4. soft-missing은 exit=0이지만 POLICY EXCEPTION: status NOT established라고 표시합니다."
+      },
+      {
+        "title": "다른 인증서의 응답도 거부",
+        "text": "서명과 시간 조건이 맞아도 대상이 다르면 사용할 수 없습니다.",
+        "command": "cd ~/lab\npython /opt/scripts/revocation_lab.py staple wrong-id\necho \"exit=$?\"",
+        "expect": "different certificate, TLS REJECTED, exit=5."
+      }
+    ],
+    "apis": [
+      {
+        "name": "SSL_set_tlsext_status_type(ssl, type)",
+        "purpose": "TLS 연결에서 인증서 상태 응답을 요청하도록 설정합니다.",
+        "usage": "핸드셰이크 전에 TLSEXT_STATUSTYPE_ocsp를 설정하고 별도의 검증 콜백과 정책을 준비합니다. 실제 수신·검증 성공을 반환하는 함수는 아닙니다.",
+        "args": "ssl은 개별 연결 객체, type은 요청할 상태 형식입니다.",
+        "ownership": "소유권을 변경하지 않습니다.",
+        "returns": "1 성공, 0 실패.",
+        "failure": "설정 실패 후 응답을 요청했다고 가정하지 않습니다.",
+        "lab": "연결별 SNI·호스트 이름 검증과 함께 설정한 뒤 SSL_connect를 호출합니다."
+      },
+      {
+        "name": "SSL_CTX_set_tlsext_status_cb(ctx, callback)",
+        "purpose": "TLS 상태 응답을 처리하는 콜백을 설정합니다.",
+        "usage": "클라이언트 콜백은 응답의 수락 여부를 판정합니다. 서버 콜백의 반환 상수와 클라이언트의 수락·거부 규칙은 다릅니다. 재개 핸드셰이크에서는 호출되지 않을 수 있습니다.",
+        "args": "ctx는 SSL_CTX, callback은 int(SSL*, void*) 함수입니다. 별도의 set_tlsext_status_arg로 사용자 문맥을 연결합니다.",
+        "ownership": "문맥 포인터 대상은 OpenSSL이 소유하지 않습니다. 관련 연결과 콜백 실행이 끝날 때까지 유지해야 합니다.",
+        "returns": "등록 함수는 1 성공, 0 실패. 클라이언트 콜백은 양수 수락, 0 거부, 음수 처리 오류입니다.",
+        "failure": "등록 실패를 확인하고 콜백에서 예외를 잡습니다. 콜백 미호출도 별도 정책으로 다룹니다.",
+        "lab": "Policy가 issuer·store를 빌리고 called와 상세 결과를 기록합니다. Policy와 입력은 SSL보다 오래 유지됩니다."
+      },
+      {
+        "name": "SSL_get_tlsext_status_ocsp_resp(ssl, &response)",
+        "purpose": "상대가 첨부한 OCSP 응답의 바이트 주소와 길이를 조회합니다.",
+        "usage": "수신 응답은 DER이므로 파싱 후 서명·대상·시각·인증서 상태를 검사합니다. 길이를 얻는 호출 자체가 검증은 아닙니다.",
+        "args": "ssl은 연결 객체, response는 응답 내부 버퍼 주소를 받을 포인터입니다.",
+        "ownership": "응답 바이트는 SSL이 소유한 빌린 메모리입니다. 직접 free하거나 SSL보다 오래 보관하지 않습니다.",
+        "returns": "응답 바이트 길이, 응답이 없으면 -1입니다.",
+        "failure": "음수·빈 응답을 크기 없는 정상 데이터로 처리하지 않습니다.",
+        "lab": "check_staple은 누락을 먼저 처리하고 양의 길이만 verify_ocsp에 전달합니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "Stapling",
+        "meaning": "TLS 서버가 서명된 OCSP 응답을 클라이언트에게 전달하는 방식."
+      },
+      {
+        "name": "soft-missing",
+        "meaning": "이 예제에서 상태 응답 누락만 예외적으로 허용하는 정책."
+      },
+      {
+        "name": "Must-Staple",
+        "meaning": "인증서의 TLS Feature 확장으로 표현하는 상태 응답 요구."
+      }
+    ],
+    "quiz": {
+      "question": "soft-missing으로 연결이 허용되면 폐기 상태 확인도 성공했나요?",
+      "options": [
+        "아니요. 정책 예외로 허용했으며 상태는 확인하지 못했습니다.",
+        "네. 연결 성공은 항상 OCSP good과 같습니다."
+      ],
+      "answer": 0,
+      "explanation": "연결 허용과 검증 성공을 서로 다른 사실로 기록해야 합니다."
+    },
+    "challenge": "검증에 실패한 단계와 이유를 기록하고, 그 결과가 폐기 확인인지 상태 확인 불가인지 설명해 보세요.",
+    "docs": [
+      "https://docs.openssl.org/3.5/man1/openssl-ca/",
+      "https://docs.openssl.org/3.5/man1/openssl-ocsp/",
+      "https://docs.openssl.org/3.5/man3/OCSP_resp_find_status/",
+      "https://docs.openssl.org/3.5/man3/SSL_CTX_set_tlsext_status_cb/",
+      "https://docs.openssl.org/3.5/man3/X509_VERIFY_PARAM_set_flags/",
+      "https://www.rfc-editor.org/rfc/rfc6960.html",
+      "https://www.rfc-editor.org/rfc/rfc5280.html"
+    ],
+    "file": "examples/cpp/staple_client.cpp"
+  },
+  {
+    "id": "revocation-api",
+    "module": 7,
+    "title": "C++에서 OCSP 검증과 실패 정책을 완성하기",
+    "minutes": 45,
+    "steps": [
+      {
+        "title": "정상 응답의 전체 검증",
+        "text": "편집기에서 verify_ocsp와 호출부를 함께 읽습니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/ocsp_verify.cpp revocation good good\necho \"exit=$?\"",
+        "expect": "인증서 체인·이름·용도 검사 뒤 GOOD과 exit=0."
+      },
+      {
+        "title": "대상 불일치·서명 오류·서명 권한 부족",
+        "text": "같은 정상 인증서에 사용할 응답 파일만 바꿉니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/ocsp_verify.cpp revocation good revoked\necho \"exit=$?\"\nstudy-build examples/cpp/ocsp_verify.cpp revocation good badsig\necho \"exit=$?\"\nstudy-build examples/cpp/ocsp_verify.cpp revocation good unauthorized\necho \"exit=$?\"",
+        "expect": "각각 different certificate와 signature or signer authorization, exit=5. unauthorized는 실제 서명은 맞지만 OCSP 서명 권한이 없어 exit=5입니다."
+      },
+      {
+        "title": "만료·미래·nextUpdate 누락",
+        "text": "서명 성공과 최신성 검사는 별개임을 확인합니다.",
+        "command": "cd ~/lab\nfor response in stale future no-next; do\n  study-build examples/cpp/ocsp_verify.cpp revocation good \"$response\"\n  echo \"exit=$?\"\ndone",
+        "expect": "세 응답 모두 시간 또는 nextUpdate 정책 위반으로 exit=5."
+      },
+      {
+        "title": "조회 대상의 상태 확인",
+        "text": "같은 이름의 인증서와 응답을 짝지어 실행합니다.",
+        "command": "cd ~/lab\nstudy-build examples/cpp/ocsp_verify.cpp revocation revoked revoked\necho \"exit=$?\"\nstudy-build examples/cpp/ocsp_verify.cpp revocation unknown unknown\necho \"exit=$?\"",
+        "expect": "REVOKED exit=2와 UNKNOWN exit=3을 구분합니다."
+      }
+    ],
+    "apis": [
+      {
+        "name": "OCSP_response_get1_basic(response)",
+        "purpose": "OCSP 응답에서 기본 상태 응답 객체를 얻습니다.",
+        "usage": "전체 response_status를 확인한 뒤 BasicOCSPResponse를 얻고 추가 검증을 수행합니다.",
+        "args": "response는 파싱한 OCSP_RESPONSE입니다.",
+        "ownership": "반환 객체는 호출자가 OCSP_BASICRESP_free로 해제합니다. 입력 response와 별도로 수명을 관리합니다.",
+        "returns": "OCSP_BASICRESP* 또는 nullptr.",
+        "failure": "nullptr이면 Basic 응답이 있다고 가정하지 않습니다.",
+        "lab": "Basic 핸들이 서명과 상태 검사 동안 유지됩니다."
+      },
+      {
+        "name": "OCSP_basic_verify(basic, certs, store, flags)",
+        "purpose": "OCSP 응답 서명과 서명자의 인증 경로·서명 권한을 검사합니다.",
+        "usage": "검증용 신뢰 store를 준비하고 추가 후보 인증서가 있으면 certs로 제공합니다. 검증을 생략하는 flags를 편의상 사용하지 않습니다. 이후 대상·시각·상태 검사도 필요합니다.",
+        "args": "basic은 검사할 응답, certs는 추가 서명자·중간 인증서 후보 스택, store는 신뢰 저장소, flags는 검증 옵션입니다.",
+        "ownership": "입력 소유권을 소비하지 않습니다. 후보 인증서를 제공했다고 자동으로 신뢰 앵커가 되는 것은 아닙니다.",
+        "returns": "1 성공, 0 검증 실패, -1 치명적 처리 오류.",
+        "failure": "1에서만 다음 단계로 진행합니다. 검증 오류는 상세 오류 큐와 함께 기록합니다.",
+        "lab": "예제는 certs=nullptr, flags=0으로 응답에 포함된 위임 서명자와 별도 ca.pem을 사용합니다."
+      },
+      {
+        "name": "OCSP_resp_find_status(basic, id, status, reason, revtime, thisupd, nextupd)",
+        "purpose": "대상 CertID와 일치하는 상태 항목을 찾아 출력 인자에 기록합니다.",
+        "usage": "서명 검증과 별도로 기대한 ID를 생성하고 검색합니다. 반환값 1을 good 상태로 해석하지 않습니다.",
+        "args": "basic과 id는 입력입니다. status·reason은 int 출력, revtime·thisupd·nextupd는 ASN1_GENERALIZEDTIME*를 받을 출력 포인터입니다.",
+        "ownership": "시간 포인터는 basic 내부 데이터의 빌린 참조입니다. basic보다 오래 사용하거나 별도 free하지 않습니다.",
+        "returns": "항목을 찾으면 1, 없으면 0. 인증서 상태는 *status에서 확인합니다.",
+        "failure": "항목이 없으면 다른 대상의 응답일 수 있으므로 거부합니다. revtime·reason은 revoked에서만 의미가 있습니다.",
+        "lab": "wrong-id 실험은 서명된 응답이라도 기대한 인증서 상태가 없으면 거부함을 보여 줍니다."
+      },
+      {
+        "name": "OCSP_check_validity(thisupd, nextupd, sec, maxsec)",
+        "purpose": "OCSP 상태 정보의 시각이 현재 시각과 설정한 허용 범위에 맞는지 확인합니다.",
+        "usage": "검색한 상태 항목의 시간을 전달합니다. sec로 시계 오차를 허용하고 maxsec로 thisUpdate의 최대 나이를 제한합니다. nextUpdate 필수 여부 같은 추가 정책은 별도로 정합니다.",
+        "args": "thisupd는 상태 기준 시각, nextupd는 다음 갱신 시각(없을 수 있음), sec는 허용 오차 초, maxsec는 최대 나이 초이며 -1은 그 제한을 적용하지 않습니다.",
+        "ownership": "시간 객체를 빌려 검사하며 소유권을 변경하지 않습니다.",
+        "returns": "1 유효, 0 시간 검증 실패.",
+        "failure": "서명 검증이 성공했어도 시간 검사가 실패하면 해당 정보를 최신 상태로 사용하지 않습니다.",
+        "lab": "예제는 nextUpdate를 요구하고 (30, 3600)을 사용합니다. 이 수치는 실습 정책이며 모든 서비스의 공통 정답은 아닙니다."
+      }
+    ],
+    "terms": [
+      {
+        "name": "최신성",
+        "meaning": "상태 정보를 현재 판단에 사용할 수 있을 만큼 최근이고 유효한지에 대한 조건."
+      },
+      {
+        "name": "hard-fail",
+        "meaning": "필요한 상태를 확인할 수 없으면 연결을 거부하는 정책."
+      },
+      {
+        "name": "soft-fail",
+        "meaning": "일부 확인 실패를 정책 예외로 허용하는 방식. 폐기 확인이나 검증 성공과는 다릅니다."
+      }
+    ],
+    "quiz": {
+      "question": "OCSP_basic_verify 성공만 확인하고 연결을 허용해도 되나요?",
+      "options": [
+        "아니요. 대상 ID·최신성·인증서 상태와 기존 인증서 검증도 필요합니다.",
+        "네. 서명된 모든 응답은 모든 인증서에 사용할 수 있습니다."
+      ],
+      "answer": 0,
+      "explanation": "응답의 진위와 우리가 확인할 대상의 현재 상태는 별도 검사입니다."
+    },
+    "challenge": "검증에 실패한 단계와 이유를 기록하고, 그 결과가 폐기 확인인지 상태 확인 불가인지 설명해 보세요.",
+    "docs": [
+      "https://docs.openssl.org/3.5/man1/openssl-ca/",
+      "https://docs.openssl.org/3.5/man1/openssl-ocsp/",
+      "https://docs.openssl.org/3.5/man3/OCSP_resp_find_status/",
+      "https://docs.openssl.org/3.5/man3/SSL_CTX_set_tlsext_status_cb/",
+      "https://docs.openssl.org/3.5/man3/X509_VERIFY_PARAM_set_flags/",
+      "https://www.rfc-editor.org/rfc/rfc6960.html",
+      "https://www.rfc-editor.org/rfc/rfc5280.html"
+    ],
+    "file": "examples/cpp/ocsp_verify.cpp"
+  }
+]

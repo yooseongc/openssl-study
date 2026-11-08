@@ -1,5 +1,87 @@
 const exampleGuides = {
 
+  "examples/cpp/crl_verify.cpp": {
+    "desc": "먼저 폐기 섹션의 setup을 실행하세요. 폴더 인증서이름 CRL종류 순서입니다. CRL 검증 거부는 exit=5이며 이유를 별도 출력합니다.",
+    "choices": [
+      [
+        "revocation good current",
+        "정상 인증서 + 현재 CRL"
+      ],
+      [
+        "revocation revoked current",
+        "폐기 거부"
+      ],
+      [
+        "revocation good missing",
+        "CRL 누락"
+      ],
+      [
+        "revocation good stale",
+        "CRL 만료"
+      ]
+    ]
+  },
+  "examples/cpp/ocsp_verify.cpp": {
+    "desc": "폴더 인증서이름 응답이름 순서입니다. 확장자는 자동으로 붙입니다. 공유 검증은 revocation.hpp에 있습니다.",
+    "choices": [
+      [
+        "revocation good good",
+        "정상: exit=0"
+      ],
+      [
+        "revocation revoked revoked",
+        "폐기: exit=2"
+      ],
+      [
+        "revocation unknown unknown",
+        "상태 모름: exit=3"
+      ],
+      [
+        "revocation good revoked",
+        "다른 대상: exit=5"
+      ],
+      [
+        "revocation good stale",
+        "시간 실패: exit=5"
+      ],
+      [
+        "revocation good unauthorized",
+        "서명 권한 부족: exit=5"
+      ]
+    ]
+  },
+  "examples/cpp/ocsp_fixture.cpp": {
+    "desc": "setup이 호출하는 실패 자료 생성 도구입니다. 학습용 responder 개인키로 잘못된 시각의 응답을 서명하며 해당 DER 파일을 덮어씁니다.",
+    "choices": [
+      [
+        "revocation stale",
+        "만료 자료 생성"
+      ],
+      [
+        "revocation future",
+        "미래 자료 생성"
+      ],
+      [
+        "revocation no-next",
+        "nextUpdate 없는 자료 생성"
+      ]
+    ]
+  },
+  "examples/cpp/staple_client.cpp": {
+    "desc": "교재의 revocation_lab.py staple 명령이 이 파일을 컴파일하고 임시 서버까지 관리합니다. 편집기에서 직접 실행하려면 먼저 별도 터미널에서 s_server를 띄우고 그 포트를 인자로 넣으세요.",
+    "choices": [
+      [
+        "revocation 4444 strict",
+        "별도 4444 TLS 서버가 실행 중일 때"
+      ],
+      [
+        "revocation 4444 soft-missing",
+        "별도 서버에서 누락 허용 정책 비교"
+      ]
+    ]
+  }
+,
+
   "examples/cpp/qat_probe.cpp": {
     "desc": "Provider 로딩·필수 조건 선택·AES-GCM 결과를 확인합니다. 실제 HW 실행 여부는 별도 확인이 필요합니다.",
     "choices": [

@@ -105,3 +105,84 @@ flowTopics.push({
     ]
   ]
 });
+
+flowTopics.push({
+  "id": "revocation",
+  "title": "인증서 폐기: CRL·OCSP·Stapling",
+  "intro": "서명된 상태 정보를 읽는 일과 연결을 허용하는 정책을 분리합니다.",
+  "scope": "직접 발급한 leaf의 검사 흐름입니다. 중간 CA·간접 CRL·delta CRL·세션 재개 정책 전체를 구현한 그림은 아닙니다.",
+  "lesson": "revocation-basics",
+  "docs": [
+    "https://docs.openssl.org/3.5/man3/OCSP_resp_find_status/",
+    "https://www.rfc-editor.org/rfc/rfc6960.html"
+  ],
+  "steps": [
+    [
+      "기본 인증서 검증",
+      "클라이언트",
+      "체인 + 이름 + 용도 + 시간",
+      "OCSP good은 원래 인증서 검증을 대신하지 않습니다.",
+      "X509_verify_cert"
+    ],
+    [
+      "상태 정보 확보",
+      "파일 또는 통신",
+      "CRL / 직접 OCSP / TLS Stapling",
+      "CRL은 서명된 목록, OCSP는 특정 CertID의 서명된 상태입니다. Stapling은 서버가 OCSP 응답을 전달하는 방식입니다.",
+      "SSL_get_tlsext_status_ocsp_resp"
+    ],
+    [
+      "진위와 서명 권한",
+      "클라이언트 로컬",
+      "신뢰 store + 서명자 → 검증",
+      "서명자 인증서가 첨부되어 있다는 이유로 신뢰하지 않습니다. OCSP 권한도 확인합니다.",
+      "OCSP_basic_verify"
+    ],
+    [
+      "대상과 최신성",
+      "클라이언트 로컬",
+      "CertID + thisUpdate / nextUpdate",
+      "다른 대상의 응답이나 만료된 서명 응답을 현재 상태에 적용하지 않습니다.",
+      "OCSP_resp_find_status"
+    ],
+    [
+      "상태와 정책 판정",
+      "애플리케이션",
+      "good / revoked / unknown / unavailable / invalid",
+      "상태 미확인 예외로 연결을 허용해도 good으로 기록하지 않습니다.",
+      "OCSP_check_validity"
+    ]
+  ],
+  "columns": [
+    "결과",
+    "의미",
+    "이 교재의 처리"
+  ],
+  "rows": [
+    [
+      "good",
+      "검증한 응답이 대상의 비폐기 상태를 보고",
+      "기본 인증서 검증도 통과해야 허용"
+    ],
+    [
+      "revoked",
+      "유효한 상태 정보에서 폐기 확인",
+      "거부"
+    ],
+    [
+      "unknown",
+      "서명된 응답이 상태 모름을 보고",
+      "거부"
+    ],
+    [
+      "unavailable",
+      "응답 누락·서비스 불가",
+      "strict 거부 / soft-missing은 누락만 예외"
+    ],
+    [
+      "invalid",
+      "서명·권한·대상·시간 검증 실패",
+      "거부"
+    ]
+  ]
+});
